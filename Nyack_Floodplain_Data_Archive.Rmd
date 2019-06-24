@@ -9,9 +9,18 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+Code to compile and organize Nyack Floodplain data meterological and hydrologic data into an archivable format.
+
+Load the data
+```{r}
+
+temp <- tibble(read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", sep = ",", skip = 1))
+
+head(temp)
+
+
 ```
+
 
 ## R Markdown
 
