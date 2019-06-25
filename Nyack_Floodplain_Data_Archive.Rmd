@@ -17,13 +17,15 @@ Approach to start
 Load the data
 ```{r}
 options(stringsAsFactors = FALSE)
-library(dplyr)
+library(tidyverse)
 
 # Get the data
-temp <- read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", sep = ",", skip = 4, header = FALSE)
+temp <- read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", 
+                   sep = ",", skip = 4, header = FALSE)
 
 # Add the column headers
-colnames(temp) <- colnames(read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", sep = ",", skip = 1, header = TRUE))
+colnames(temp) <- colnames(read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", 
+                                      sep = ",", skip = 1, header = TRUE))
 
 head(temp)
 
@@ -31,27 +33,51 @@ ha07_files <- list.files(path = "./Data/HA07")
 
 ha07_water_files <- ha07_files[grepl("_Water", ha07_files)]
 
+# Testing te function
+file_name <- "CR1000_HA07_Water - thru6_7_2016.dat"
+
 # Write a function to load in the water files
 load_ha07_water_file <- function(file_name){
   # Read in the file
-  temp <- read.delim(paste("./Data/HA07/", "file_name", sep ','), 
-                     sep = ",", skip = 1, header = FASLE)
+  temp <- read.delim(paste("./Data/HA07/", file_name, sep = ''), 
+                     sep = ",", skip = 4, header = FALSE)
   
-  colnames(temp) <- colnames(read.delim(paste("./Data/HA07/", "file_name", sep ','), 
-                             sep = ",", skip = 1, header = TRUE))
+  colnames(temp) <- colnames(read.delim(paste("./Data/HA07/", file_name, sep = ''), 
+                                        sep = ",", skip = 1, header = TRUE))
   
   # Find the min and max sample dates in the file
   # Convert the timestamp variable to posix time
   temp$TIMESTAMP <- as.POSIXct(temp$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S") 
   
   # Find the max
-  max(temp$TIMESTAMP)
+  max_time <- format(max(na.omit(temp$TIMESTAMP)), "%Y_%m_%d")
   
+  # Find the min
+  min_time <- format(min(na.omit(temp$TIMESTAMP)), "%Y_%m_%d")
+  
+  # Create a new file name using the station number, min, and max datetime
+  new_name <- paste("HA07", min_time, "to", max_time, sep = '_')
+  
+  # Rename the file 
+  assign(new_name, temp)
+  
+  return(new_name)
+
 }
-  
-  for(i in ha07_water_files){
-  
+
+load_ha07_water_file("CR1000_HA07_Water_5_15_12 thru 7_6_12.dat")
+
+# Apply the read in function to the water files in the directory
+for(file in ha07_water_files){
+  load_ha07_water_file(file)
 }
+
+test <- "test"
+
+# Identify the rows that have NA values in the timestamp column
+temp %>%
+       rowid_to_column() %>%
+     filter(is.na(TIMESTAMP))
 
 ```
 
