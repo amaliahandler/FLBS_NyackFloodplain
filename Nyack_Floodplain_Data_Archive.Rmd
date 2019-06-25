@@ -20,11 +20,11 @@ options(stringsAsFactors = FALSE)
 library(tidyverse)
 
 # Get the data
-temp <- read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", 
+temp <- read.delim("./Data/CR1000_HA15_Table1.dat", 
                    sep = ",", skip = 4, header = FALSE)
 
 # Add the column headers
-colnames(temp) <- colnames(read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", 
+colnames(temp) <- colnames(read.delim("./Data/CR1000_HA15_Table1.dat", 
                                       sep = ",", skip = 1, header = TRUE))
 
 head(temp)
@@ -58,21 +58,29 @@ load_ha07_water_file <- function(file_name){
   # Create a new file name using the station number, min, and max datetime
   new_name <- paste("HA07", min_time, "to", max_time, sep = '_')
   
-  # Rename the file 
-  assign(new_name, temp)
-  
-  return(new_name)
+  # Write the file to the same location in rds format
+  saveRDS(temp, paste("./Data/HA07/", new_name, sep = ''))
 
 }
-
-load_ha07_water_file("CR1000_HA07_Water_5_15_12 thru 7_6_12.dat")
 
 # Apply the read in function to the water files in the directory
 for(file in ha07_water_files){
   load_ha07_water_file(file)
 }
 
-test <- "test"
+
+ha07_1 <- readRDS(paste("./Data/HA07/", "HA07_2012_05_15_to_2012_07_06", sep = ''))
+ha07_2 <- readRDS(paste("./Data/HA07/", "HA07_2012_07_06_to_2012_11_24", sep = ''))
+ha07_3 <- readRDS(paste("./Data/HA07/", "HA07_2012_07_06_to_2013_03_31", sep = ''))
+ha07_4 <- readRDS(paste("./Data/HA07/", "HA07_2013_04_01_to_2016_06_07", sep = ''))
+ha07_5 <- readRDS(paste("./Data/HA07/", "HA07_2013_04_01_to_2018_07_10", sep = ''))
+ha07_6 <- readRDS(paste("./Data/HA07/", "HA07_2013_04_01_to_2018_07_16", sep = ''))
+ha07_7 <- readRDS(paste("./Data/HA07/", "HA07_2013_04_01_to_2019_06_05", sep = ''))
+
+nrow(HA07_1)
+nrow(HA07_2)
+
+
 
 # Identify the rows that have NA values in the timestamp column
 temp %>%
@@ -82,22 +90,50 @@ temp %>%
 ```
 
 
-## R Markdown
+I need to figure out earliest date for each station and the variables in each dataframe.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Parameters 
+route <- "/Users/thomasjackson/Data/GEP&CO/GEP&CO" 
+lts <- LETTERS[1:12] 
+toread <- paste(route,lts,"/HPLC_",lts,"12.csv",sep='') 
 
-```{r cars}
-summary(cars)
+# Reading in the data   -- option 1 
+myfiles <- list() 
+for(i in 1:12)  myfiles[i] <- read.csv(toread, header=T, sep=',') 
+names(myfiles) <- paste("G&P", lts, sep='') 
+myfiles 
+
+# Option 2   -- no for() loop
+
+toread <- paste("./Data/HA07/", ha07_water_files, sep = '')
+
+myfiles <- list()
+myfiles <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
+
+var_names <- list()
+for(i in 1:length(ha07_water_files)){
+  var_names[[i]] <- colnames(read.delim(paste("./Data/HA07/", ha07_water_files[i], sep = ''), 
+                                        sep = ",", skip = 1, header = TRUE))
+}
+
+for(i in 1:length(myfiles)){
+  colnames(myfiles[[i]]) <- var_names[[i]]
+}
+
+# Convert the time to a datetime variable
+test <- lapply(myfiles, function(x){
+ x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
+ return(x)
+})
+
+lapply(myfiles, as.POSIXct, format = "%Y-%m-%d %H:%M:%S")
+
+names(myfiles) <- 
+
+
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
