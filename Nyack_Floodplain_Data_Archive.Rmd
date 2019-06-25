@@ -11,13 +11,47 @@ editor_options:
 
 Code to compile and organize Nyack Floodplain data meterological and hydrologic data into an archivable format.
 
+Approach to start
+- Figure out the structure of each df for HA07. Determine what is duplicate data and if anything has changed
+
 Load the data
 ```{r}
+options(stringsAsFactors = FALSE)
+library(dplyr)
 
-temp <- tibble(read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", sep = ",", skip = 1))
+# Get the data
+temp <- read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", sep = ",", skip = 4, header = FALSE)
+
+# Add the column headers
+colnames(temp) <- colnames(read.delim("./Data/HA07/CR1000_HA07_Water - thru6_7_2016.dat", sep = ",", skip = 1, header = TRUE))
 
 head(temp)
 
+ha07_files <- list.files(path = "./Data/HA07")
+
+ha07_water_files <- ha07_files[grepl("_Water", ha07_files)]
+
+# Write a function to load in the water files
+load_ha07_water_file <- function(file_name){
+  # Read in the file
+  temp <- read.delim(paste("./Data/HA07/", "file_name", sep ','), 
+                     sep = ",", skip = 1, header = FASLE)
+  
+  colnames(temp) <- colnames(read.delim(paste("./Data/HA07/", "file_name", sep ','), 
+                             sep = ",", skip = 1, header = TRUE))
+  
+  # Find the min and max sample dates in the file
+  # Convert the timestamp variable to posix time
+  temp$TIMESTAMP <- as.POSIXct(temp$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S") 
+  
+  # Find the max
+  max(temp$TIMESTAMP)
+  
+}
+  
+  for(i in ha07_water_files){
+  
+}
 
 ```
 
