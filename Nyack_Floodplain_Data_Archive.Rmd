@@ -94,39 +94,43 @@ I need to figure out earliest date for each station and the variables in each da
 
 ```{r}
 
-# Parameters 
-route <- "/Users/thomasjackson/Data/GEP&CO/GEP&CO" 
-lts <- LETTERS[1:12] 
-toread <- paste(route,lts,"/HPLC_",lts,"12.csv",sep='') 
-
-# Reading in the data   -- option 1 
-myfiles <- list() 
-for(i in 1:12)  myfiles[i] <- read.csv(toread, header=T, sep=',') 
-names(myfiles) <- paste("G&P", lts, sep='') 
-myfiles 
-
-# Option 2   -- no for() loop
-
+# Read in the files
 toread <- paste("./Data/HA07/", ha07_water_files, sep = '')
 
 myfiles <- list()
 myfiles <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
 
+# Get the column names
 var_names <- list()
 for(i in 1:length(ha07_water_files)){
-  var_names[[i]] <- colnames(read.delim(paste("./Data/HA07/", ha07_water_files[i], sep = ''), 
-                                        sep = ",", skip = 1, header = TRUE))
+  var_names[[i]] <- colnames(read.delim(paste("./Data/HA07/", ha07_water_files[i], sep = ''), sep = ",", skip = 1, header = TRUE))
 }
 
-for(i in 1:length(myfiles)){
-  colnames(myfiles[[i]]) <- var_names[[i]]
-}
+# Add the column names to the list of files
+# for(i in 1:length(myfiles)){
+#   colnames(myfiles[[i]]) <- var_names[[i]]
+# }
 
-# Convert the time to a datetime variable
-test <- lapply(myfiles, function(x){
+myfiles <- lapply(myfiles, function(x) {
+  colnames(x) <- var_names[[1]]
+  x      
+})
+
+# Convert the timestamp to a datetime variable
+myfiles <- lapply(myfiles, function(x){
  x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
  return(x)
 })
+
+
+# Find the max and min data in each file
+max_min_date <- lapply(myfiles, function(x){
+  min_date <- format(as.Date(min(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  max_date <- format(as.Date(max(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  dates <- c(min_date, max_date)
+  return(dates)
+})
+
 
 lapply(myfiles, as.POSIXct, format = "%Y-%m-%d %H:%M:%S")
 
