@@ -93,12 +93,17 @@ temp %>%
 I need to figure out earliest date for each station and the variables in each dataframe.
 
 ```{r}
+# List the files in the directory from Phil
+ha07_files <- list.files(path = "./Data/HA07")
+
+# Identify only those files related to water
+ha07_water_files <- ha07_files[grepl("_Water", ha07_files)]
 
 # Read in the files
 toread <- paste("./Data/HA07/", ha07_water_files, sep = '')
 
-myfiles <- list()
-myfiles <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
+ha07_water <- list()
+ha07_water <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
 
 # Get the column names
 var_names <- list()
@@ -111,33 +116,176 @@ for(i in 1:length(ha07_water_files)){
 #   colnames(myfiles[[i]]) <- var_names[[i]]
 # }
 
-myfiles <- lapply(myfiles, function(x) {
+ha07_water <- lapply(ha07_water, function(x) {
   colnames(x) <- var_names[[1]]
   x      
 })
 
 # Convert the timestamp to a datetime variable
-myfiles <- lapply(myfiles, function(x){
+ha07_water <- lapply(ha07_water, function(x){
  x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
  return(x)
 })
 
 
 # Find the max and min data in each file
-max_min_date <- lapply(myfiles, function(x){
+max_min_date <- lapply(ha07_water, function(x){
   min_date <- format(as.Date(min(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
   max_date <- format(as.Date(max(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
   dates <- c(min_date, max_date)
   return(dates)
 })
 
+# Name the dataframes in the list
+ha07_water_df_names <- sapply(max_min_date, function(x){
+                              paste("ha07_water", x[1], "to", x[2], sep = '_')
+})
 
-lapply(myfiles, as.POSIXct, format = "%Y-%m-%d %H:%M:%S")
+names(ha07_water) <- ha07_water_df_names
 
-names(myfiles) <- 
+# Earliest date of water data in these files
+min_date <- NULL
+max_date <- NULL
+for(i in 1:length(max_min_date)){
+  min_date[i] <- max_min_date[[i]][1]
+  max_date[i] <- max_min_date[[i]][2]
+}
 
+min_date <- as.Date(min_date, format = "%Y_%m_%d")
+max_date <- as.Date(max_date, format = "%Y_%m_%d")
+
+min(min_date)
+max(max_date)
 
 
 ```
 
+Now read in the meterological data from HA07
+
+```{r}
+# List the files in the directory from Phil
+ha07_files <- list.files(path = "./Data/HA07")
+
+# Identify only those files related to water
+ha07_met_files <- ha07_files[grepl("_Met", ha07_files)]
+
+# Read in the files
+toread <- paste("./Data/HA07/", ha07_met_files, sep = '')
+
+ha07_met <- list()
+ha07_met <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
+
+# Get the column names
+var_names <- list()
+for(i in 1:length(ha07_met_files)){
+  var_names[[i]] <- colnames(read.delim(paste("./Data/HA07/", ha07_met_files[i], sep = ''), sep = ",", skip = 1, header = TRUE))
+}
+
+# Apply the column names to the list of dfs
+ha07_met <- lapply(ha07_met, function(x) {
+  colnames(x) <- var_names[[1]]
+  x      
+})
+
+# Convert the timestamp to a datetime variable
+ha07_met <- lapply(ha07_met, function(x){
+ x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
+ return(x)
+})
+
+
+# Find the max and min data in each file
+max_min_date <- lapply(ha07_met, function(x){
+  min_date <- format(as.Date(min(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  max_date <- format(as.Date(max(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  dates <- c(min_date, max_date)
+  return(dates)
+})
+
+# Name the dataframes in the list
+ha07_met_df_names <- sapply(max_min_date, function(x){
+                              paste("ha07_met", x[1], "to", x[2], sep = '_')
+})
+
+names(ha07_met) <- ha07_met_df_names
+
+# Earliest date of water data in these files
+min_date <- NULL
+max_date <- NULL
+for(i in 1:length(max_min_date)){
+  min_date[i] <- max_min_date[[i]][1]
+  max_date[i] <- max_min_date[[i]][2]
+}
+
+min_date <- as.Date(min_date, format = "%Y_%m_%d")
+max_date <- as.Date(max_date, format = "%Y_%m_%d")
+
+min(min_date)
+max(max_date)
+
+```
+
+
+Now load in the data from Jeremy
+
+```{r}
+# List the files in the directory from Phil
+ha_files_toread <- list.files(path = "./Data", pattern = ".dat")
+
+# Read in the files
+toread <- paste("./Data/", ha_files, sep = '')
+
+ha_files <- list()
+ha_files <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
+
+# Get the column names
+var_names <- list()
+for(i in 1:length(ha_files)){
+  var_names[[i]] <- colnames(read.delim(paste("./Data/", ha_files[i], sep = ''), sep = ",", skip = 1, header = TRUE))
+}
+
+
+
+# Apply the column names to the list of dfs
+ha07_met <- lapply(ha07_met, function(x) {
+  colnames(x) <- var_names[[1]]
+  x      
+})
+
+# Convert the timestamp to a datetime variable
+ha07_met <- lapply(ha07_met, function(x){
+ x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
+ return(x)
+})
+
+
+# Find the max and min data in each file
+max_min_date <- lapply(ha07_met, function(x){
+  min_date <- format(as.Date(min(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  max_date <- format(as.Date(max(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  dates <- c(min_date, max_date)
+  return(dates)
+})
+
+# Name the dataframes in the list
+ha07_met_df_names <- sapply(max_min_date, function(x){
+                              paste("ha07_met", x[1], "to", x[2], sep = '_')
+})
+
+names(ha07_met) <- ha07_met_df_names
+
+# Earliest date of water data in these files
+min_date <- NULL
+max_date <- NULL
+for(i in 1:length(max_min_date)){
+  min_date[i] <- max_min_date[[i]][1]
+  max_date[i] <- max_min_date[[i]][2]
+}
+
+min_date <- as.Date(min_date, format = "%Y_%m_%d")
+max_date <- as.Date(max_date, format = "%Y_%m_%d")
+
+min(min_date)
+max(max_date)
+```
 
