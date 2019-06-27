@@ -233,7 +233,7 @@ Now load in the data from Jeremy
 ha_files_toread <- list.files(path = "./Data", pattern = ".dat")
 
 # Read in the files
-toread <- paste("./Data/", ha_files, sep = '')
+toread <- paste("./Data/", ha_files_toread, sep = '')
 
 ha_files <- list()
 ha_files <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
@@ -241,51 +241,56 @@ ha_files <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4)
 # Get the column names
 var_names <- list()
 for(i in 1:length(ha_files)){
-  var_names[[i]] <- colnames(read.delim(paste("./Data/", ha_files[i], sep = ''), sep = ",", skip = 1, header = TRUE))
+  var_names[[i]] <- colnames(read.delim(paste("./Data/", ha_files_toread[i], sep = ''), sep = ",", skip = 1, header = TRUE))
 }
 
-
-
 # Apply the column names to the list of dfs
-ha07_met <- lapply(ha07_met, function(x) {
-  colnames(x) <- var_names[[1]]
-  x      
-})
+for(i in 1:length(var_names)){
+  colnames(ha_files[[i]]) <- var_names[[i]]
+}
 
 # Convert the timestamp to a datetime variable
-ha07_met <- lapply(ha07_met, function(x){
+ha_files <- lapply(ha_files, function(x){
  x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
  return(x)
 })
 
-
-# Find the max and min data in each file
-max_min_date <- lapply(ha07_met, function(x){
+# Find the max and min data in each file and determine if it is a water data files or a meteorlogical file
+file_info <- lapply(ha_files, function(x){
+  if(colnames(x)[3] == "AirTC") {
+    data_type <- "met"
+  } else { data_type <- "water"
+  }
   min_date <- format(as.Date(min(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
   max_date <- format(as.Date(max(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
-  dates <- c(min_date, max_date)
+  dates <- c(data_type, min_date, max_date)
   return(dates)
 })
 
-# Name the dataframes in the list
-ha07_met_df_names <- sapply(max_min_date, function(x){
-                              paste("ha07_met", x[1], "to", x[2], sep = '_')
-})
-
-names(ha07_met) <- ha07_met_df_names
-
-# Earliest date of water data in these files
-min_date <- NULL
-max_date <- NULL
-for(i in 1:length(max_min_date)){
-  min_date[i] <- max_min_date[[i]][1]
-  max_date[i] <- max_min_date[[i]][2]
+# Find the ha number for each file
+# If the file contains "CR1000", then I can extract
+# If the file name contains "Nyack" then need another method
+well_info <- NULL
+for(i in 1:length(ha_files_toread)){
+  if(grepl("CR1000", ha_files_toread[i])){
+  well_info[i] <- substr(ha_files_toread[i], 8, 11)
+  } else {
+    well_info[i] <- substr(ha_files_toread[i], 7, 10)
+  }
 }
 
-min_date <- as.Date(min_date, format = "%Y_%m_%d")
-max_date <- as.Date(max_date, format = "%Y_%m_%d")
+# Name the dataframes in the list
+ha_df_names <- sapply(max_min_date, function(x){
+                              paste("ha07_met", x[1], "to", x[2], sep = '_')
+  })
 
-min(min_date)
-max(max_date)
+ha_df_names <- NULL
+for(i in 1:length(well_info)){
+  ha_df_names[i] <- paste(well_info[i], file_info[[i]][1], file_info[[i]][2], "to", file_info[[i]][3], sep = "_")
+}
+
+names(ha_files) <- ha_df_names
+
+
 ```
 
