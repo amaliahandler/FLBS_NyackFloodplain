@@ -162,7 +162,7 @@ max(max_date)
 
 Now read in the meterological data from HA07
 
-```{r}
+```{r, include = FALSE}
 # List the files in the directory from Phil
 ha07_files <- list.files(path = "./Data/HA07")
 
@@ -228,7 +228,7 @@ max(max_date)
 
 Now load in the data from Jeremy
 
-```{r}
+```{r, include = FALSE}
 # List the files in the directory from Phil
 ha_files_toread <- list.files(path = "./Data", pattern = ".dat")
 
@@ -291,6 +291,67 @@ for(i in 1:length(well_info)){
 
 names(ha_files) <- ha_df_names
 
+```
+
+
+Explore the continuity in the data
+
+```{r, include = FALSE}
+
+# For those wells that seem to have a complete copy in the column heads, sans for the ending identifying number, is this a switch in sensors?
+
+# HA15 appears to have both sets of sensors recording, at least at the start
+# DO conc and sat missing at the end for the second set
+head(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 3:10])
+head(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 11:18])
+
+tail(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 3:10])
+tail(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 11:18])
+
+# Plot of DO concentration over the period of record
+par(mfrow = c(2,1), mar = c(2,2,1,1))
+plot(ha_files$HA15_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA15_water_2013_04_01_to_2019_06_25$DoConc7, ylab = "DO Conc", xlab = "Time")
+plot(ha_files$HA15_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA15_water_2013_04_01_to_2019_06_25$DoConc8, ylab = "DO Conc", xlab = "Time")
+
+# HA02 has data from the first set of sensors, only nonsense data from the temperature sensor for the conductivity on the second set of sensors, otherwise, all are NAN values
+head(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 3:10])
+head(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 11:18])
+
+tail(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 3:10])
+tail(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 11:18])
+
+# Plot of DO concentration over the period of record
+par(mfrow = c(2,1), mar = c(2,2,1,1))
+plot(ha_files$HA02_water_2013_04_01_to_2019_06_23$TIMESTAMP, ha_files$HA02_water_2013_04_01_to_2019_06_23$DoConc9, ylab = "DO Conc", xlab = "Time")
+plot(ha_files$HA02_water_2013_04_01_to_2019_06_23$TIMESTAMP, ha_files$HA02_water_2013_04_01_to_2019_06_23$DoConc10, ylab = "DO Conc", xlab = "Time")
+
+# HA08 appears to have both sets of sensors recording, at least at the start
+head(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 3:10])
+head(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 11:18])
+
+tail(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 3:10])
+tail(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 11:18])
+
+# Plot of DO concentration over the period of record
+par(mfrow = c(2,1), mar = c(2,2,1,1))
+plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$DoConc1, ylab = "DO Conc", xlab = "Time")
+plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$DoConc2, ylab = "DO Conc", xlab = "Time")
+# Seems that when a second DO sensor is in place, the second sensor is a lot more variables than the first sensor.
+
+# Conductivity, same pattern here the second sensor is a lot more variable
+plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$Cond1, ylab = "Cond", xlab = "Time")
+plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$Cond_2, ylab = "Cond", xlab = "Time", ylim = c(0,0.5))
+
+plot(ha_files$HA07_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA07_water_2013_04_01_to_2019_06_25$DoConc3, ylab = "DO Conc", xlab = "Time")
 
 ```
+
+Visualize the data
+
+```{r}
+
+
+
+```
+
 
