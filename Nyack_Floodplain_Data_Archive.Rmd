@@ -15,7 +15,7 @@ Approach to start
 - Figure out the structure of each df for HA07. Determine what is duplicate data and if anything has changed
 
 Load the data
-```{r}
+```{r include = FALSE}
 options(stringsAsFactors = FALSE)
 library(tidyverse)
 
@@ -92,7 +92,7 @@ temp %>%
 
 I need to figure out earliest date for each station and the variables in each dataframe.
 
-```{r}
+```{r include = FALSE}
 # List the files in the directory from Phil
 ha07_files <- list.files(path = "./Data/HA07")
 
@@ -162,7 +162,7 @@ max(max_date)
 
 Now read in the meterological data from HA07
 
-```{r, include = FALSE}
+```{r include = FALSE}
 # List the files in the directory from Phil
 ha07_files <- list.files(path = "./Data/HA07")
 
@@ -228,7 +228,7 @@ max(max_date)
 
 Now load in the data from Jeremy
 
-```{r, include = FALSE}
+```{r include = FALSE}
 # List the files in the directory from Phil
 ha_files_toread <- list.files(path = "./Data", pattern = ".dat")
 
@@ -289,14 +289,15 @@ for(i in 1:length(well_info)){
   ha_df_names[i] <- paste(well_info[i], file_info[[i]][1], file_info[[i]][2], "to", file_info[[i]][3], sep = "_")
 }
 
-names(ha_files) <- ha_df_names
+names(ha_files)  <- ha_df_names
+names(var_names) <- ha_df_names
 
 ```
 
 
 Explore the continuity in the data
 
-```{r, include = FALSE}
+```{r include = FALSE}
 
 # For those wells that seem to have a complete copy in the column heads, sans for the ending identifying number, is this a switch in sensors?
 
@@ -350,8 +351,161 @@ Visualize the data
 
 ```{r}
 
+# If I want to use the markdown capabilities
+# echo = FALSE, fig.width = 4, fig.height = 3, res = 300, fig.cap = "DO concentration by well."
 
+# x <- ha_files[2:8]
+
+png("./Figures/HA_DO_Conc.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(seq_along(x), function(i){
+  if(ncol(x[[i]]) == 10) {
+  plot(x[[i]][,1], x[[i]][,3], xlab = " ", ylab = "DO (mg/L)", 
+       cex.lab = 2, cex.axis = 2)
+  title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[3], sep = ' '), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  } else {
+       plot(x[[i]][,1], x[[i]][,3], xlab = " ", ylab = "DO (mg/L)", 
+       cex.lab = 2, cex.axis = 2)
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[3], sep = ' '), 
+             line = 0.5, cex.main = 2)
+       box(lwd = 2)
+      
+       plot(x[[i]][,1], x[[i]][,11], xlab = " ", ylab = "DO (mg/L)", 
+       cex.lab = 2, cex.axis = 2)
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[11], sep = ' '), 
+       line = 0.5, cex.main = 2)
+       box(lwd = 2)
+  }
+})
+
+dev.off()
+```
+
+
+Conductivity Data
+
+```{r}
+# x <- ha_files[2:8]
+
+y_label   <- "Cond (mS/cm)"
+first_col <- 6
+sec_col   <- 14
+
+png("./Figures/HA_Cond.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(seq_along(x), function(i){
+  if(ncol(x[[i]]) == 10) {
+  plot(x[[i]][,1], x[[i]][,first_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2)
+  title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[first_col], sep = ' '), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  } else {
+       plot(x[[i]][,1], x[[i]][,first_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2)
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[first_col], sep = ' '),
+             line = 0.5, cex.main = 2)
+       box(lwd = 2)
+      
+       plot(x[[i]][,1], x[[i]][,sec_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2)
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[sec_col], sep = ' '), 
+       line = 0.5, cex.main = 2)
+       box(lwd = 2)
+  }
+})
+
+dev.off()
 
 ```
 
+
+Water level
+
+```{r}
+# x <- ha_files[2:8]
+
+y_label   <- "Water Level (m)"
+first_col <- 9
+sec_col   <- 17
+
+png("./Figures/HA_WaterLevel.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(seq_along(x), function(i){
+  if(ncol(x[[i]]) == 10) {
+  plot(x[[i]][,1], x[[i]][,first_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2)
+  title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[first_col], sep = ' '), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  } else {
+       plot(x[[i]][,1], x[[i]][,first_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2)
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[first_col], sep = ' '),
+             line = 0.5, cex.main = 2)
+       box(lwd = 2)
+      
+       plot(x[[i]][,1], x[[i]][,sec_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2)
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[sec_col], sep = ' '), 
+       line = 0.5, cex.main = 2)
+       box(lwd = 2)
+  }
+})
+
+dev.off()
+
+```
+
+
+Temperature associated with the DO sensor
+
+```{r}
+# x <- ha_files[2:8]
+
+y_label   <- "Temp (C)"
+first_col <- 5
+sec_col   <- 13
+
+png("./Figures/HA_DO_Temp_ylim20.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(seq_along(x), function(i){
+  if(ncol(x[[i]]) == 10) {
+  plot(x[[i]][,1], x[[i]][,first_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, ylim = c(0,20))
+  title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[first_col], sep = ' '), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  } else {
+       plot(x[[i]][,1], x[[i]][,first_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, ylim = c(0,20))
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[first_col], sep = ' '),
+             line = 0.5, cex.main = 2)
+       box(lwd = 2)
+      
+       plot(x[[i]][,1], x[[i]][,sec_col], xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, ylim = c(0,20))
+       title(paste(substr(names(x)[[i]], 1, 4), colnames(x[[i]])[sec_col], sep = ' '), 
+       line = 0.5, cex.main = 2)
+       box(lwd = 2)
+  }
+})
+
+dev.off()
+
+```
 
