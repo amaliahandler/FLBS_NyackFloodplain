@@ -112,10 +112,6 @@ for(i in 1:length(ha07_water_files)){
 }
 
 # Add the column names to the list of files
-# for(i in 1:length(myfiles)){
-#   colnames(myfiles[[i]]) <- var_names[[i]]
-# }
-
 ha07_water <- lapply(ha07_water, function(x) {
   colnames(x) <- var_names[[1]]
   x      
@@ -389,6 +385,81 @@ file_info <- lapply(ha_comb, function(x){
 })
 
 ```
+
+
+Compile all water data into one df
+Then separate into three spreadsheets for DO, Conductivity, and Water Level
+
+
+```{r}
+
+# For HA02, 08, and 15, there are two sets of sensors. Need to separate these into different dataframes
+# HA02 has sensors 9 and 10
+# HA08 has sensors 1 and 2
+# HA15 has sensors 7 and 8
+ha02_09 <- ha_comb$ha02[,colnames(ha_comb$ha02)[1:10]]
+ha02_10 <- ha_comb$ha02[,colnames(ha_comb$ha02)[c(1,2,11:18)]]
+ha08_01 <- ha_comb$ha08[,colnames(ha_comb$ha08)[1:10]]
+ha08_02 <- ha_comb$ha08[,colnames(ha_comb$ha08)[c(1,2,11:18)]]
+ha15_07 <- ha_comb$ha15[,colnames(ha_comb$ha15)[1:10]]
+ha15_08 <- ha_comb$ha15[,colnames(ha_comb$ha15)[c(1,2,11:18)]]
+
+# HA08_02 didn't come online until 2012-05-02. Need to trim this df to only include dates great than and including this date. From looking at the dataframe, it looks like the first numbers appear at 11:00:00.
+ha08_02 <- ha08_02[ha08_02$TIMESTAMP >= as.POSIXct('2012-05-02 11:00:00'),]
+
+# Recombine into a list
+ha_sep <- list(ha_comb$casc, ha02_09, ha02_10, ha_comb$ha07wtr,
+               ha08_01, ha08_02, ha_comb$ha10, ha_comb$ha12,
+               ha15_07, ha15_08)
+
+# Set the site and sensor numbers
+site <- c('CASC', 'HA02', 'HA02', 'HA07', 'HA08', 'HA08', 'HA10', 'HA12', 'HA15', 'HA15')
+
+sensor <- sapply(ha_sep, function(x){
+  col_name <- colnames(x)[10]
+  if(nchar(col_name) == 8){
+    num <- substr(col_name, 8, 8)
+    sensor_number <- paste('0', num, sep = '')
+  } else {
+    sensor_number <- substr(col_name, 8, 9)
+  }
+  return(sensor_number)
+})
+
+
+# Add columns to each df for the site and the sensor number
+for(i in 1:length(ha_sep)){
+  ha_sep[[i]]$site <- site[i]
+  ha_sep[[i]]$sensor_number <- sensor[i]
+}
+
+# Now bind together all the files
+# Need to rename all the columns first for compatabiility
+# New column names
+col_names <- c('datetime', 'record', 'do_conc', 'do_temp', 'do_sat', 'cond', 'ct', 'cond_temp', 'level_m', 'level_temp', 'site', 'sensor_number')
+
+# Rename the columns for the dfs in the list
+ha_rename <- lapply(ha_sep, function(x){
+  colnames(x) <- col_names
+  return(x)
+})
+
+# Bind together all rows
+ha_all <- do.call("rbind", ha_rename)
+
+# Check that the number of rows in ha_all is the sum of the rows from ha_rename
+sum(sapply(ha_rename, nrow)) == nrow(ha_all)
+# Perfecto!
+
+# Rearrange the columns
+ha_water <- ha_all[, c(11,12,1,3:10)]
+
+# Save the new master file
+saveRDS(ha_water, './Data/All_HA_Water_Data')
+
+```
+
+
 
 
 Visualize the 2013-present data
