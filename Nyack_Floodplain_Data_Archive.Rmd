@@ -295,66 +295,94 @@ names(var_names) <- ha_df_names
 ```
 
 
-Explore the continuity in the data
+Jeremy sent a whole set of data that include data prior to 2013-04-01
+Going through the metadata for each station, I found the start date for each station. This is the date at which it was confirmed that the station is collecting reliable data.
 
-```{r include = FALSE}
+Station, start date
+HA02, 2012-06-08
+HA07, 2012-05-15 (met station and well)
+HA08, 2011-12-14 (well)
+HA08, 2012-05-02 (Beaver Creek)
+HA10, 2011-12-16
+HA12, 2012-04-26
+HA15, 2012-04-26
+CASC, 2012-09-06
 
-# For those wells that seem to have a complete copy in the column heads, sans for the ending identifying number, is this a switch in sensors?
+# Append this older data to the longer contemporary datasets that Jeremy sent
 
-# HA15 appears to have both sets of sensors recording, at least at the start
-# DO conc and sat missing at the end for the second set
-head(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 3:10])
-head(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 11:18])
+```{r}
 
-tail(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 3:10])
-tail(ha_files$HA15_water_2013_04_01_to_2019_06_25[, 11:18])
+# Find all the initial data files with data between the start of monitoring and the start of the data from Jeremy (2013-04-01)
+ini_files <- c(
+  './Data/Nyack_RiverNET_HA02 Movie Rd/Nyack HA02 MovRd_Table1 5_8_12 thru 3_31_13.dat',
+  './Data/Nyack_RiverNET_HA07 MET/CR1000_HA07_Met_5_15_12 thru 7_6_12.dat',
+  './Data/Nyack_RiverNET_HA07 MET/CR1000_HA07_Met 7_6_12 thru 3_31_13.dat',
+  './Data/Nyack_RiverNET_HA07 MET/CR1000_HA07_Water_5_15_12 thru 7_6_12.dat',
+  './Data/Nyack_RiverNET_HA07 MET/CR1000_HA07_Water 7_6_12 thru 3_31_13.dat',
+  './Data/Nyack_RiverNET_HA08_Cabin/Manual download/Nyack HA08 Cabin_Table1 5_2_12 well only.dat',
+  './Data/Nyack_RiverNET_HA08_Cabin/Manual download/Nyack HA08 Cabin_Table1 5_2_12 thru 11_28_12.dat',
+  './Data/Nyack_RiverNET_HA08_Cabin/CR1000_HA08 Cabin_Table1 8_23_12 thru 3_31_13.dat',
+  './Data/Nyack_RiverNET_HA10_Sarg/CR1000_HA10_Table1 12_16_11 thru 3_31_13.dat',
+  './Data/Nyack_RiverNET_HA12_Methane/CR1000_HA12_Table1 4_26_12 thru 3_31_13.dat',
+  './Data/Nyack_RiverNET_HA15_Springhead/CR1000_HA15_Table1 4_26_12 thru 3_31_13.dat',
+  './Data/Nyack_RiverNET_Cascadilla/Nyack CASC_Table1 9_6_12 thru 3_31_13.dat')
 
-# Plot of DO concentration over the period of record
-par(mfrow = c(2,1), mar = c(2,2,1,1))
-plot(ha_files$HA15_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA15_water_2013_04_01_to_2019_06_25$DoConc7, ylab = "DO Conc", xlab = "Time")
-plot(ha_files$HA15_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA15_water_2013_04_01_to_2019_06_25$DoConc8, ylab = "DO Conc", xlab = "Time")
+ini_ha_files <- lapply(ini_files, read.delim, header = FALSE, sep = ',', skip = 4) 
 
-# HA02 has data from the first set of sensors, only nonsense data from the temperature sensor for the conductivity on the second set of sensors, otherwise, all are NAN values
-head(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 3:10])
-head(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 11:18])
+# Get the column names
+var_names <- list()
+for(i in 1:length(ini_ha_files)){
+  var_names[[i]] <- colnames(read.delim(ini_files[i], sep = ",", skip = 1, header = TRUE))
+}
 
-tail(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 3:10])
-tail(ha_files$HA02_water_2013_04_01_to_2019_06_23[, 11:18])
+# Apply the column names to the list of dfs
+for(i in 1:length(var_names)){
+  colnames(ini_ha_files[[i]]) <- var_names[[i]]
+}
 
-# Plot of DO concentration over the period of record
-par(mfrow = c(2,1), mar = c(2,2,1,1))
-plot(ha_files$HA02_water_2013_04_01_to_2019_06_23$TIMESTAMP, ha_files$HA02_water_2013_04_01_to_2019_06_23$DoConc9, ylab = "DO Conc", xlab = "Time")
-plot(ha_files$HA02_water_2013_04_01_to_2019_06_23$TIMESTAMP, ha_files$HA02_water_2013_04_01_to_2019_06_23$DoConc10, ylab = "DO Conc", xlab = "Time")
+# Convert the timestamp to a datetime variable
+ini_ha_files <- lapply(ini_ha_files, function(x){
+ x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
+ return(x)
+})
 
-# HA08 appears to have both sets of sensors recording, at least at the start
-head(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 3:10])
-head(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 11:18])
+# Apply names to the dataframes
+names(ini_ha_files) <- c('ha02', 'ha07met', 'ha07met', 'ha07wtr', 'ha07wtr', 'ha08', 'ha08', 'ha08', 'ha10', 'ha12', 'ha15', 'casc')
 
-tail(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 3:10])
-tail(ha_files$HA08_water_2013_04_01_to_2019_06_25[, 11:18])
+# Bind together rows from the same station
+ini_ha07met <- rbind(ini_ha_files[[2]], ini_ha_files[[3]])
+ini_ha07wtr <- rbind(ini_ha_files[[4]], ini_ha_files[[5]])
+ini_ha08    <- rbind(ini_ha_files[[6]], ini_ha_files[[7]], ini_ha_files[[8]])
 
-# Plot of DO concentration over the period of record
-par(mfrow = c(2,1), mar = c(2,2,1,1))
-plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$DoConc1, ylab = "DO Conc", xlab = "Time")
-plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$DoConc2, ylab = "DO Conc", xlab = "Time")
-# Seems that when a second DO sensor is in place, the second sensor is a lot more variables than the first sensor.
+# Remove duplicates from the above bound files
+ini_ha07met <- ini_ha07met[!duplicated(ini_ha07met),]
+ini_ha07wrt <- ini_ha07wtr[!duplicated(ini_ha07wtr),]
+ini_ha08    <- ini_ha08[!duplicated(ini_ha08),]
 
-# Conductivity, same pattern here the second sensor is a lot more variable
-plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$Cond1, ylab = "Cond", xlab = "Time")
-plot(ha_files$HA08_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA08_water_2013_04_01_to_2019_06_25$Cond_2, ylab = "Cond", xlab = "Time", ylim = c(0,0.5))
+# Make a new list, now with the bound, duplicates removed, data
+ini_ha_files <- list(ini_ha_files$casc, ini_ha_files$ha02, ini_ha07met, ini_ha07wtr, ini_ha08, ini_ha_files$ha10, ini_ha_files$ha12, ini_ha_files$ha15)
 
-plot(ha_files$HA07_water_2013_04_01_to_2019_06_25$TIMESTAMP, ha_files$HA07_water_2013_04_01_to_2019_06_25$DoConc3, ylab = "DO Conc", xlab = "Time")
+
+
+
+
 
 ```
 
-Visualize the data
+
+Visualize the 2013-present data
+
+Explore the continuity in the data by plotting the whole record
+
+Dissolved oxygen data
 
 ```{r}
 
 # If I want to use the markdown capabilities
 # echo = FALSE, fig.width = 4, fig.height = 3, res = 300, fig.cap = "DO concentration by well."
 
-# x <- ha_files[2:8]
+# To compile the water data from each site, exclude the meterological data
+x <- ha_files[2:8]
 
 png("./Figures/HA_DO_Conc.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
