@@ -299,6 +299,7 @@ Jeremy sent a whole set of data that include data prior to 2013-04-01
 Going through the metadata for each station, I found the start date for each station. This is the date at which it was confirmed that the station is collecting reliable data.
 
 Station, start date
+CASC, 2012-09-06
 HA02, 2012-06-08
 HA07, 2012-05-15 (met station and well)
 HA08, 2011-12-14 (well)
@@ -306,7 +307,6 @@ HA08, 2012-05-02 (Beaver Creek)
 HA10, 2011-12-16
 HA12, 2012-04-26
 HA15, 2012-04-26
-CASC, 2012-09-06
 
 # Append this older data to the longer contemporary datasets that Jeremy sent
 
@@ -359,13 +359,34 @@ ini_ha07met <- ini_ha07met[!duplicated(ini_ha07met),]
 ini_ha07wrt <- ini_ha07wtr[!duplicated(ini_ha07wtr),]
 ini_ha08    <- ini_ha08[!duplicated(ini_ha08),]
 
-# Make a new list, now with the bound, duplicates removed, data
+# Make a new list, now with the bound, duplicates removed data
 ini_ha_files <- list(ini_ha_files$casc, ini_ha_files$ha02, ini_ha07met, ini_ha07wtr, ini_ha08, ini_ha_files$ha10, ini_ha_files$ha12, ini_ha_files$ha15)
 
+# Bind the initial data to the data from Jeremy
 
+# First order the data
+ha_files <- ha_files[order(names(ha_files))]
 
+# Now bind together
+ha_comb <- list()
+for(i in 1:length(ha_files)){
+  ha_comb[[i]] <- rbind(ini_ha_files[[i]], ha_files[[i]])
+}
 
+# Name the dfs
+names(ha_comb) <- c('casc', 'ha02', 'ha07met', 'ha07wtr', 'ha08', 'ha10', 'ha12', 'ha15')
 
+# Find the max and min data in each file and determine if it is a water data files or a meteorlogical file
+file_info <- lapply(ha_comb, function(x){
+  if(colnames(x)[3] == "AirTC") {
+    data_type <- "met"
+  } else { data_type <- "water"
+  }
+  min_date <- format(as.Date(min(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  max_date <- format(as.Date(max(na.omit(x$TIMESTAMP))), "%Y_%m_%d")
+  dates <- c(data_type, min_date, max_date)
+  return(dates)
+})
 
 ```
 
