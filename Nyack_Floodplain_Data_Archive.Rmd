@@ -288,6 +288,13 @@ for(i in 1:length(well_info)){
 names(ha_files)  <- ha_df_names
 names(var_names) <- ha_df_names
 
+# Need to coerce the mutiple columns in the HA02 df from character to number. Seems that R does not see "NAN" is equivelent to "NaN".
+column_numbers <- c(11, 14:17)
+for(col in column_numbers){
+  ha_files$HA02_water_2013_04_01_to_2019_06_23[,col] <- 
+    as.numeric(ha_files$HA02_water_2013_04_01_to_2019_06_23[,col])
+}
+
 ```
 
 
@@ -344,6 +351,9 @@ ini_ha_files <- lapply(ini_ha_files, function(x){
 
 # Apply names to the dataframes
 names(ini_ha_files) <- c('ha02', 'ha07met', 'ha07met', 'ha07wtr', 'ha07wtr', 'ha08', 'ha08', 'ha08', 'ha10', 'ha12', 'ha15', 'casc')
+
+# Coerce one of the column from one of the HA08 files from character to numeric
+ini_ha_files[[6]]$DoConc2 <- as.numeric(ini_ha_files[[6]]$DoConc2)
 
 # Bind together rows from the same station
 ini_ha07met <- rbind(ini_ha_files[[2]], ini_ha_files[[3]])
@@ -404,8 +414,17 @@ ha08_02 <- ha_comb$ha08[,colnames(ha_comb$ha08)[c(1,2,11:18)]]
 ha15_07 <- ha_comb$ha15[,colnames(ha_comb$ha15)[1:10]]
 ha15_08 <- ha_comb$ha15[,colnames(ha_comb$ha15)[c(1,2,11:18)]]
 
-# HA08_02 didn't come online until 2012-05-02. Need to trim this df to only include dates great than and including this date. From looking at the dataframe, it looks like the first numbers appear at 11:00:00.
-ha08_02 <- ha08_02[ha08_02$TIMESTAMP >= as.POSIXct('2012-05-02 11:00:00'),]
+### Stuck here. Trying to remove an erroneously created row with all NA values when subsetting to remove the test data from HA08_02. Problem is that other rows that have missing datetime information are removed in the process as well. Trying to figure out how to remove the test data without also removing the rows with NA values for the datetime AND without erroneously creating a new row with ALL NA values.
+
+# HA08_02 didn't come online until 2012-05-02. Need to trim this df to only include dates greater than and including this date. From looking at the dataframe, it looks like the first numbers appear at 11:00:00.
+ha08_02[is.na(ha08_02$TIMESTAMP),]
+
+ha08_02 <- ha08_02[which(ha08_02$TIMESTAMP >= as.POSIXct('2012-05-02 11:00:00')),]
+
+ha08_02[is.na(ha08_02$TIMESTAMP),]
+# Remove the erroneously added first row populated with all NA values
+ha08_02 <- ha08_02[2:nrow(ha08_02),]
+
 
 # Recombine into a list
 ha_sep <- list(ha_comb$casc, ha02_09, ha02_10, ha_comb$ha07wtr,
@@ -455,10 +474,62 @@ sum(sapply(ha_rename, nrow)) == nrow(ha_all)
 ha_water <- ha_all[, c(11,12,1,3:10)]
 
 # Save the new master file
-saveRDS(ha_water, './Data/All_HA_Water_Data')
+saveRDS(ha_water, './Data/All_HA_Water_Data.rds')
+
 
 ```
 
+What kind of NA values are in the df?
+
+```{r}
+# ha_water <- readRDS('./Data/All_HA_Water_Data')
+
+# What timea are missing
+temp <- subset(ha_water, is.na(ha_water$datetime))
+
+# Can I just interpolate these values?
+x <- 17
+row_num <- as.numeric(row.names(temp[x,]))
+ha_water[(row_num - 1):(row_num + 1), c('site','sensor_number','datetime')]
+# Seems to be a pattern of the NA datetime values occuring around March 10, always at 02:00:00. 
+# Find the dtime prior to the one missing
+row_nums <- na.omit(as.numeric(row.names(temp)))
+
+# How many of these NA's adhere to the above observed pattern?
+test <- ha_water[(row_nums-1),]
+# All instances for CASC, HA02, and HA07 were all instances where the dtime was missing around March 10, always at 02:00:00.
+
+# All other instances?
+# HA08
+ha_water[(which(ha_water$site == "HA08" & is.na(ha_water$datetime)) + 1),]
+# HA08 wells seem to be the same except for the last observation from HA08 for sensor 01
+# Looked at the raw data file for HA08, but there is no oberservation after 2019-06-25 06:00:00. 
+
+ha_water[(which(ha_water$site == "HA10" & is.na(ha_water$datetime)) - 1),]
+ha_water[(which(ha_water$site == "HA10" & is.na(ha_water$datetime)) + 1),]
+
+ha_water[(which(ha_water$site == "HA12" & is.na(ha_water$datetime)) - 1),]
+ha_water[(which(ha_water$site == "HA12" & is.na(ha_water$datetime)) + 1),]
+
+ha_water[(which(ha_water$site == "HA15" & is.na(ha_water$datetime)) - 1),]
+ha_water[(which(ha_water$site == "HA15" & is.na(ha_water$datetime)) + 1),]
+
+
+
+
+
+temp <- ha_water[which(is.na(ha_water)==TRUE),]
+
+temp <- subset(ha_water, is.na(ha_water$datetime))
+
+# Is there any pattern to the NA values
+
+na.rows <- which(is.na(ha_water))
+
+x <- 1
+ha_water[(na.rows[x] - 10):(na.rows[x] +10),]
+
+```
 
 
 
