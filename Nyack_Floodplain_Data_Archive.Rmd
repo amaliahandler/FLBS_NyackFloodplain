@@ -414,17 +414,20 @@ ha08_02 <- ha_comb$ha08[,colnames(ha_comb$ha08)[c(1,2,11:18)]]
 ha15_07 <- ha_comb$ha15[,colnames(ha_comb$ha15)[1:10]]
 ha15_08 <- ha_comb$ha15[,colnames(ha_comb$ha15)[c(1,2,11:18)]]
 
-### Stuck here. Trying to remove an erroneously created row with all NA values when subsetting to remove the test data from HA08_02. Problem is that other rows that have missing datetime information are removed in the process as well. Trying to figure out how to remove the test data without also removing the rows with NA values for the datetime AND without erroneously creating a new row with ALL NA values.
-
 # HA08_02 didn't come online until 2012-05-02. Need to trim this df to only include dates greater than and including this date. From looking at the dataframe, it looks like the first numbers appear at 11:00:00.
+
+# TO avoid headaches with the rows that are missing datetime information, and because the df is organized in chronological order, I'll use a match function rather than a logical (>) to select the observations that come after 2012-05-02.
+first_row <- match(as.POSIXct('2012-05-02 11:00:00'), ha08_02$TIMESTAMP)
+ha08_02   <- ha08_02[first_row:nrow(ha08_02),] 
+
+# Check the columns that have NA values for time
 ha08_02[is.na(ha08_02$TIMESTAMP),]
 
-ha08_02 <- ha08_02[which(ha08_02$TIMESTAMP >= as.POSIXct('2012-05-02 11:00:00')),]
-
-ha08_02[is.na(ha08_02$TIMESTAMP),]
-# Remove the erroneously added first row populated with all NA values
-ha08_02 <- ha08_02[2:nrow(ha08_02),]
-
+# HA02_10 was initially installed in a parafluvial area, but quickly went dry and was removed from the area. It was removed on 2012-09-21 around 15:00. Note that the sensor was dry for some time before it was removed (first noted as dry on 2012-07-12)
+# Looking at the data, the water level switches from positive to negative at 2012-07-11 11:00:00
+# Remove data for this site after this point in time
+last_row <- match(as.POSIXct('2012-07-11 11:00:00'), ha02_10$TIMESTAMP)
+ha02_10  <- ha02_10[1:last_row,]
 
 # Recombine into a list
 ha_sep <- list(ha_comb$casc, ha02_09, ha02_10, ha_comb$ha07wtr,
@@ -455,7 +458,7 @@ for(i in 1:length(ha_sep)){
 # Now bind together all the files
 # Need to rename all the columns first for compatabiility
 # New column names
-col_names <- c('datetime', 'record', 'do_conc', 'do_temp', 'do_sat', 'cond', 'ct', 'cond_temp', 'level_m', 'level_temp', 'site', 'sensor_number')
+col_names <- c('datetime', 'record', 'do_conc', 'do_sat', 'do_temp', 'cond', 'ct', 'cond_temp', 'level_m', 'level_temp', 'site', 'sensor_number')
 
 # Rename the columns for the dfs in the list
 ha_rename <- lapply(ha_sep, function(x){
@@ -474,7 +477,7 @@ sum(sapply(ha_rename, nrow)) == nrow(ha_all)
 ha_water <- ha_all[, c(11,12,1,3:10)]
 
 # Save the new master file
-saveRDS(ha_water, './Data/All_HA_Water_Data.rds')
+# saveRDS(ha_water, './Data/All_HA_Water_Data.rds')
 
 
 ```
@@ -487,23 +490,19 @@ What kind of NA values are in the df?
 # What timea are missing
 temp <- subset(ha_water, is.na(ha_water$datetime))
 
-# Can I just interpolate these values?
-x <- 17
-row_num <- as.numeric(row.names(temp[x,]))
-ha_water[(row_num - 1):(row_num + 1), c('site','sensor_number','datetime')]
-# Seems to be a pattern of the NA datetime values occuring around March 10, always at 02:00:00. 
-# Find the dtime prior to the one missing
-row_nums <- na.omit(as.numeric(row.names(temp)))
+# Check for missing datetime information
+# Datetime was always missing around March 10, always at 02:00:00, must be due to daylight savings time. In spring, clocks go from 2 to 3 am instantly, thus losing an hour. Yet, there is still an observation collected between 1 and 3 am on these dates. Why?
+ha_water[(which(ha_water$site == "CASC" & is.na(ha_water$datetime)) - 1),]
+ha_water[(which(ha_water$site == "CASC" & is.na(ha_water$datetime)) + 1),]
 
-# How many of these NA's adhere to the above observed pattern?
-test <- ha_water[(row_nums-1),]
-# All instances for CASC, HA02, and HA07 were all instances where the dtime was missing around March 10, always at 02:00:00.
+ha_water[(which(ha_water$site == "HA02" & is.na(ha_water$datetime)) - 1),]
+ha_water[(which(ha_water$site == "HA02" & is.na(ha_water$datetime)) + 1),]
 
-# All other instances?
-# HA08
+ha_water[(which(ha_water$site == "HA07" & is.na(ha_water$datetime)) - 1),]
+ha_water[(which(ha_water$site == "HA07" & is.na(ha_water$datetime)) + 1),]
+
+ha_water[(which(ha_water$site == "HA08" & is.na(ha_water$datetime)) - 1),]
 ha_water[(which(ha_water$site == "HA08" & is.na(ha_water$datetime)) + 1),]
-# HA08 wells seem to be the same except for the last observation from HA08 for sensor 01
-# Looked at the raw data file for HA08, but there is no oberservation after 2019-06-25 06:00:00. 
 
 ha_water[(which(ha_water$site == "HA10" & is.na(ha_water$datetime)) - 1),]
 ha_water[(which(ha_water$site == "HA10" & is.na(ha_water$datetime)) + 1),]
@@ -515,19 +514,72 @@ ha_water[(which(ha_water$site == "HA15" & is.na(ha_water$datetime)) - 1),]
 ha_water[(which(ha_water$site == "HA15" & is.na(ha_water$datetime)) + 1),]
 
 
+# Identifying missing data based on when the sensors were serviced
 
+# As an example, sensors were out at HA02_09 at 11:00 on 2012-06-26
+time_out <- as.POSIXct('2012-06-26 11:00', format = '%Y-%m-%d %H:%M')
+site     <- "HA02"
+sensor   <- "09"
 
+temp <- ha_water[ha_water$site == site & ha_water$sensor_number == sensor,]
 
-temp <- ha_water[which(is.na(ha_water)==TRUE),]
+row_num <- match(time_out, temp$datetime)
 
-temp <- subset(ha_water, is.na(ha_water$datetime))
+temp[(row_num - 3):(row_num + 3), 3:11]
 
-# Is there any pattern to the NA values
+# As an example, sensors were out at HA02_09 at 11:00 on 2012-06-26
+time_out <- as.POSIXct('2012-07-23 19:00', format = '%Y-%m-%d %H:%M')
+site     <- "HA02"
+sensor   <- "09"
 
-na.rows <- which(is.na(ha_water))
+temp <- ha_water[ha_water$site == site & ha_water$sensor_number == sensor,]
 
-x <- 1
-ha_water[(na.rows[x] - 10):(na.rows[x] +10),]
+row_num <- match(time_out, temp$datetime)
+
+temp[(row_num - 3):(row_num + 3), 3:11]
+
+# Another example
+time_out <- as.POSIXct('2012-07-26 12:00', format = '%Y-%m-%d %H:%M')
+site     <- "HA10"
+sensor   <- "04"
+
+temp <- ha_water[ha_water$site == site & ha_water$sensor_number == sensor,]
+
+row_num <- match(time_out, temp$datetime)
+
+temp[(row_num - 3):(row_num + 3), 3:11]
+
+# Another example
+time_out <- as.POSIXct('2014-10-07 14:00', format = '%Y-%m-%d %H:%M')
+site     <- "HA15"
+sensor   <- "07"
+
+temp <- ha_water[ha_water$site == site & ha_water$sensor_number == sensor,]
+
+row_num <- match(time_out, temp$datetime)
+
+temp[(row_num - 3):(row_num + 3), 3:11]
+
+# Example from a thing in surface water
+time_out <- as.POSIXct('2014-05-08 11:00', format = '%Y-%m-%d %H:%M')
+site     <- "CASC"
+sensor   <- "06"
+
+temp <- ha_water[ha_water$site == site & ha_water$sensor_number == sensor,]
+
+row_num <- match(time_out, temp$datetime)
+
+temp[(row_num - 3):(row_num + 3), 3:11]
+
+# In general, when the sensors are being serviced, the water level is negative, the ct is negative, and the conductivity is below 0.005 mS (below 0.010)
+
+# Let's see if I can pull out this data
+bad_data <- ha_water[which(ha_water$cond < 0.010 & ha_water$ct < 0 & ha_water$level_m < 0),]
+# Seems like this is flagging data from service trips where the sensors were pulled for a measurement.
+# All sites now have approximately the same number of flagged observations
+# From comparing the metadata to the datetimes flagged in this df, there are some observations that were flagged at times when there is no note in the metadata about removing sensors. This seems fairly reasonable. If someone was working in the well, but wasn't out with Tom or Phil, then it probably didn't make it into the metadata notes.
+# Note also that this processes misses observations that satisfy one or two of these qualifiers, but have NA or NaN values for one or two of the others.
+
 
 ```
 
@@ -697,6 +749,42 @@ lapply(seq_along(x), function(i){
 })
 
 dev.off()
+
+```
+
+EPA Job Talk Figure
+
+```{r}
+
+vis <- ha_files$HA07_water_2013_04_01_to_2019_06_25
+
+png("./Figures/EPA Job Talk Fig.png", units = "in", 
+    width = 5, height = 8, res = 300, bg = "transparent")
+
+par(mfrow = c(4,1), oma = c(2,2,1,1), mar = c(3,5,2,0), c(3, 2, 0))
+
+plot(vis$TIMESTAMP, vis$Lvl_m3, xlab = " ", ylab = "Water Level", 
+       cex.lab = 2, cex.axis = 2, ylim = c(3,4.5), pch = 20, xaxt='n')
+  title("Water Level (m)", line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  
+plot(vis$TIMESTAMP, vis$DO_W_T3, xlab = " ", ylab = "Temp", 
+       cex.lab = 2, cex.axis = 2, ylim = c(4,10), pch = 20, xaxt='n')
+  title("Temperature (°C)", line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  
+plot(vis$TIMESTAMP, vis$Cond3, xlab = " ", ylab = "Cond", 
+       cex.lab = 2, cex.axis = 2, ylim = c(.2,.3), pch = 20, xaxt='n')
+  title("Conductivity (mS)", line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  
+plot(vis$TIMESTAMP, vis$DoConc3, xlab = " ", ylab = "DO", 
+       cex.lab = 2, cex.axis = 2, ylim = c(4,8), pch = 20)
+  title("Dissolved Oxygen (mg/L)", line = 0.5, cex.main = 2)
+  box(lwd = 2)  
+
+dev.off()
+
 
 ```
 
