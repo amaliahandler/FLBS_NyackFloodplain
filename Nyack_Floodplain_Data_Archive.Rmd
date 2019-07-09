@@ -478,7 +478,7 @@ ha_water <- ha_all[, c(11,12,1,3:10)]
 
 # Save the new master file
 # saveRDS(ha_water, './Data/All_HA_Water_Data.rds')
-
+# write.csv(ha_water, './Data/All_HA_Water_Data.csv', col.names = TRUE, row.names = FALSE)
 
 ```
 
@@ -579,6 +579,15 @@ bad_data <- ha_water[which(ha_water$cond < 0.010 & ha_water$ct < 0 & ha_water$le
 # All sites now have approximately the same number of flagged observations
 # From comparing the metadata to the datetimes flagged in this df, there are some observations that were flagged at times when there is no note in the metadata about removing sensors. This seems fairly reasonable. If someone was working in the well, but wasn't out with Tom or Phil, then it probably didn't make it into the metadata notes.
 # Note also that this processes misses observations that satisfy one or two of these qualifiers, but have NA or NaN values for one or two of the others.
+nrow(bad_data)
+
+bad_do <- (ha_water[ha_water$do_conc <= 0 | is.na(ha_water$do_conc),])
+
+# First thing that jumps out is that the ice up on CASC meant that the sensors could not be cleaned or calibrated and the DO readings for this period are all zero. Ice cover first recorded 11/27/2013, pouring ice melt down the well enabled calibration on 12/27/2013, then were frozen again until 4/3/2014
+
+temp <- bad_do[which(bad_do$site == "CASC" & bad_do$do_conc == 0),]
+unique(as.Date(temp$datetime))
+
 
 
 ```
