@@ -394,6 +394,15 @@ file_info <- lapply(ha_comb, function(x){
   return(dates)
 })
 
+# Renames the timestamp column and remove the records column in the met data
+# Add a site column
+ha07_met <- ha_comb$ha07met
+ha07_met$site <- "ha07" 
+ha07_met$sensor_number <- "met"
+colnames(ha07_met)[1] <- "datetime"
+ha07_met <- ha07_met[, c(21,22,1,3:20)]
+
+
 # Save the meterological data file
 # saveRDS(ha_comb$ha07met, './Data/HA_Met_Data.rds')
 # write.csv(ha_comb$ha07met, './Data/HA_Met_Data.csv', row.names = FALSE)
