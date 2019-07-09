@@ -394,6 +394,10 @@ file_info <- lapply(ha_comb, function(x){
   return(dates)
 })
 
+# Save the meterological data file
+# saveRDS(ha_comb$ha07met, './Data/HA_Met_Data.rds')
+# write.csv(ha_comb$ha07met, './Data/HA_Met_Data.csv', row.names = FALSE)
+
 ```
 
 
