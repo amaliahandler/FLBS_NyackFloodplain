@@ -1,0 +1,33 @@
+---
+title: "Nyack_Floodplain_EML_Assembly"
+author: "Amalia Handler"
+date: "7/9/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script uses the EML Assemblyline to create the metadata associated with the RiverNet water and meterological data.
+
+```{r}
+# Install packages
+# install.packages("remotes")
+
+# Install EML assemblyline from GitHub
+remotes::install_github("EDIorg/EMLassemblyline")
+
+# Load packages
+library(EMLassemblyline)
+
+# Set working directory
+setwd("C:\\Users\\EDI Lab User 128\\Desktop\\Amalia_EDI_Workshop")
+
+# Template a data package directory
+template_directories(
+  path = '.',
+  dir.name = 'pkg_301'
+)
+
+
+```
+
