@@ -19,13 +19,72 @@ remotes::install_github("EDIorg/EMLassemblyline")
 # Load packages
 library(EMLassemblyline)
 
-# Set working directory
-setwd("C:\\Users\\EDI Lab User 128\\Desktop\\Amalia_EDI_Workshop")
-
 # Template a data package directory
+# Note that this script is part of an R project and defaults to the project directory
 template_directories(
   path = '.',
-  dir.name = 'pkg_301'
+  dir.name = 'RiverNet_EML_Assembly'
+)
+
+# View directory contents
+dir('./RiverNet_EML_Assembly')
+
+# The templates directory is empty
+dir('./RiverNet_EML_Assembly/metadata_templates')
+
+# Template core metadata
+template_core_metadata(
+  path = './RiverNet_EML_Assembly/metadata_templates',
+  license = 'CC0'
+)
+
+# The templates core metadata files are now present
+dir('./RiverNet_EML_Assembly/metadata_templates')
+
+# Add the compiled RiverNet data to the directory
+file.copy(from = './Data/All_HA_Water_Data.csv', 
+          to   = './RiverNet_EML_Assembly/data_objects')
+
+file.copy(from = './Data/HA_Met_Data.csv', 
+          to   = './RiverNet_EML_Assembly/data_objects')
+
+file.copy(from = './Data/Nyack_RiverNet_Instrumentation.csv', 
+          to   = './RiverNet_EML_Assembly/data_objects')
+
+file.copy(from = './Data/Nyack_RiverNet_Station_Location.csv', 
+          to   = './RiverNet_EML_Assembly/data_objects')
+
+# Check that the files are present
+dir('./RiverNet_EML_Assembly/data_objects')
+
+# Template table attributes for each table
+template_table_attributes(
+  path = './RiverNet_EML_Assembly/metadata_templates',
+  data.path = './RiverNet_EML_Assembly/data_objects',
+  data.table = c('All_HA_Water_Data.csv', 'HA_Met_Data.csv',
+                 'Nyack_RiverNet_Instrumentation.csv',
+                 'Nyack_RiverNet_Station_Location.csv')
+)
+# Now need to manually edit the variable types in the attribute files.
+# Check especially for categorical and datetime variables.
+
+# Table attributes templates are now present
+dir('./RiverNet_EML_Assembly/metadata_templates')
+
+# Template categorical variables
+template_categorical_variables(
+  path = './RiverNet_EML_Assembly/metadata_templates',
+  data.path = './RiverNet_EML_Assembly/data_objects'
+)
+
+# Template geographic coverage
+template_geographic_coverage(
+  path = './pkg_301/metadata_templates',
+  data.path = './pkg_301/data_objects',
+  data.table = 'SRWN_Soil_Physical_Data.csv',
+  site.col = 'location',
+  lat.col = 'lat',
+  lon.col = 'lon'
 )
 
 
