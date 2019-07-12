@@ -607,24 +607,17 @@ unique(as.Date(temp$datetime))
 Try out some different anomomly detection methods
 
 ```{r}
+
+ha_water <- readRDS("./Data/All_HA_Water_Data.rds")
+
 # Anomalize R Package
+# A useful article with some background on anomaly detection
+# https://cran.r-project.org/web/packages/anomalize/vignettes/anomalize_methods.html
 
 # devtools::install_github("business-science/anomalize")
 
 library(tidyverse)
 library(anomalize)
-library(dplyr)
-library(ggplot2)
-library(tibbletime)
-
-tidyverse_cran_downloads %>%
-    ggplot(aes(date, count)) +
-    geom_point(color = "#2c3e50", alpha = 0.25) +
-    facet_wrap(~ package, scale = "free_y", ncol = 3) +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
-    labs(title = "Tidyverse Package Daily Download Counts",
-         subtitle = "Data from CRAN by way of cranlogs package")
 
 # Test out the anomoly detection for a small subset of data
 # DO temperature from 01-2013 to 06-2013 for HA07
@@ -641,65 +634,117 @@ do_temp %>%
     time_recompose() %>%
     # Anomaly Visualization
     plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.25) +
+    scale_y_continuous(limits = c(4, 7)) +
     labs(title = "HA07 DO Temp Anomalies", subtitle = "STL + IQR Methods") 
 
-# Getting an error where the function seems to not recognize the time component to the tibbletime object
+# With defaults for freq and time
+decomp_do_temp <- do_temp %>%
+    time_decompose(do_temp, method = "stl") %>%
+    anomalize(remainder, method = "iqr") %>%
+    time_recompose()
+ 
+p1 <- decomp_do_temp %>%
+    plot_anomaly_decomposition() +
+    ggtitle("Freq/Trend = 'auto'")
 
-# Try to reporduce the error
-# Make a tibble with similar data, a smooth line with anomolous datapoints
-# Create some test data
-count <- c(1:25, 40, 27:50, 25, 52:75, 105, 77:100)
-datetime_r <- seq(from = as.POSIXct('2013-01-01 00:00'), by = "1 hour", length.out = 100) 
+p1
 
-# Insert an NA value into the datetime variable
-datetime_r[25] <- NA
+# How many outliers IDed?
+decomp_do_temp[decomp_do_temp$anomaly == "Yes",]
+# 131
 
-# Create a tibble object
-test <- tibble(count, datetime_r)
-
-# Run the amonalize function
-test %>%
-    # Data Manipulation / Anomaly Detection
-    time_decompose(count) %>%
-    anomalize(remainder, alpha = 0.05, max_anoms = 0.2) %>%
-    time_recompose() %>%
-    # Anomaly Visualization
-    plot_anomalies(time_recomposed = TRUE) +
-    labs(title = "Anomalies for Test Data") 
-
-
-
-
-
-tbltime_test %>%
-  time_decompose(y) %>%
-  anomalize(remainder, alpha = 0.05, max_anoms = 0.2) %>%
-  time_recompose() %>%
-  plot_anomalies(time_recomposed = TRUE) +
-  ggtitle("Anomalies for Test Data")
-
-# Get only lubridate downloads
-lubridate_dloads <- tidyverse_cran_downloads %>%
-    filter(package == "lubridate") %>% 
-    ungroup()
-
-tidyverse_cran_downloads %>%
-    # Data Manipulation / Anomaly Detection
-    time_decompose(count, method = "stl") %>%
+# Now experiment with setting the freq
+anom_do_temp <- do_temp[1:600,] %>%
+    time_decompose(do_temp, method = "stl",
+                   frequency = "auto",
+                   trend = "auto") %>%
     anomalize(remainder, method = "iqr") %>%
     time_recompose() %>%
-    # Anomaly Visualization
-    plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.25) +
-    labs(title = "Tidyverse Anomalies", subtitle = "STL + IQR Methods") 
+    plot_anomaly_decomposition()
 
-lubridate_dloads %>%
-    # Twitter + GESD
-    time_decompose(count, method = "stl") %>%
+# How many outliers IDed?
+anom_do_temp$data[anom_do_temp$data$anomaly == "Yes",]
+# 7
+
+
+# Try using the outlier detection for a year of data
+do_temp <- ha_water[ha_water$site == 'HA07' & ha_water$sensor_number == '03' & ha_water$datetime >= as.POSIXct('2013-01-01 00:00') & ha_water$datetime < as.POSIXct('2014-01-01 00:00'), c('do_temp','datetime')]
+
+do_temp <- as_tibble(do_temp)
+do_temp <- do_temp[complete.cases(do_temp),]
+
+anom_do_temp <- do_temp %>%
+    time_decompose(do_temp, method = "stl",
+                   frequency = "auto",
+                   trend = "auto") %>%
     anomalize(remainder, method = "iqr") %>%
-    time_recompose() %>%
-    # Anomaly Visualziation
-    plot_anomalies(time_recomposed = TRUE) +
-    labs(title = "Lubridate Anomalies", subtitle = "STL + IQR Methods")
+    time_recompose()
+
+plot_anomaly_decomposition(anom_do_temp)
+
+anom_do_temp[anom_do_temp$anomaly == "Yes",]
+
+anom_do_temp %>%
+plot_anomalies(time_recomposed = TRUE)
+
+anom_do_temp %>%
+plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = c(4.7,4.85)) +
+  scale_x_datetime(limits = c(as.POSIXct('2013-05-01'),as.POSIXct('2013-05-17')))
+
+
+# Try using the outlier detection for all the data for HA07 well
+do_temp <- ha_water[ha_water$site == 'HA07' & ha_water$sensor_number == '03', c('do_temp','datetime')]
+
+do_temp <- as_tibble(do_temp)
+do_temp <- do_temp[complete.cases(do_temp),]
+
+anom_do_temp <- do_temp %>%
+    time_decompose(do_temp, method = "stl",
+                   frequency = "auto",
+                   trend = "auto") %>%
+    anomalize(remainder, method = "iqr") %>%
+    time_recompose()
+
+plot_anomaly_decomposition(anom_do_temp)
+
+anom_do_temp[anom_do_temp$anomaly == "Yes",]
+
+anom_do_temp %>%
+plot_anomalies(time_recomposed = TRUE)
+
+# Seems like there are a lot of anomalies from 2017-2019
+nrow(anom_do_temp[anom_do_temp$anomaly == "Yes",])
+nrow(anom_do_temp[anom_do_temp$anomaly == "Yes" & anom_do_temp$datetime > as.POSIXct('2017-01-01'),])
+# Yup, 88% of outliers fall in thos last two years
+
+# Take a close look at a big cluster of flagged outliers
+anom_do_temp %>%
+plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = c(6.5,7.75)) +
+  scale_x_datetime(limits = c(as.POSIXct('2017-11-01'),as.POSIXct('2018-01-01')))
+# Unclear why the trend deviates from the observations so much during this period
+# Maybe it's related to the outlier observations on the low end here??
+
+# Would it help if I removed impossible observations?
+# for this data, anything outside of 2 and 10 degrees C
+do_temp <- do_temp[do_temp$do_temp > 2 & do_temp$do_temp < 10,]
+
+anom_do_temp <- do_temp %>%
+    time_decompose(do_temp, method = "stl",
+                   frequency = "auto",
+                   trend = "auto") %>%
+    anomalize(remainder, method = "iqr") %>%
+    time_recompose()
+
+anom_do_temp[anom_do_temp$anomaly == "Yes",]
+
+anom_do_temp %>%
+plot_anomalies(time_recomposed = TRUE)
+# NOPE, did not help, abort
+
+# Maybe try divying up the data into year-long segments?
+
 
 
 
