@@ -611,8 +611,13 @@ Try out some different anomomly detection methods
 ha_water <- readRDS("./Data/All_HA_Water_Data.rds")
 
 # Anomalize R Package
-# A useful article with some background on anomaly detection
+# Useful articles with some background on anomaly detection
+
+# This describes the methods for generating seasonality and trend data
 # https://cran.r-project.org/web/packages/anomalize/vignettes/anomalize_methods.html
+
+# This describes how to alter the amount of anomalies detected
+# https://cran.r-project.org/web/packages/anomalize/vignettes/anomalize_quick_start_guide.html#adjusting-decomposition-trend-and-seasonality
 
 # devtools::install_github("business-science/anomalize")
 
@@ -954,6 +959,57 @@ anom_do_temp_2019 %>%
 
 ```
 
+Figure out how to fill gaps in the data prior to using the anomalize package
+
+```{r}
+# install.packages("forecast")
+library(forecast)
+library(tibbletime)
+
+all_times <- seq(from = min(do_temp$datetime), to = max(do_temp$datetime), by = "1 hour")
+
+temp <- data.frame(datetime = all_times)
+
+temp <- merge(temp, do_temp, by = "datetime", all.x = TRUE)
+
+do_temp <- as_tbl_time(temp, datetime)
+
+temp <- na.interp(do_temp$do_temp, lambda = NULL, 
+                  linear = (frequency(do_temp$do_temp) <= 1 |
+  sum(!is.na(do_temp$do_temp)) <= 2 * frequency(do_temp$do_temp)))
+
+
+plot(all_times, temp)
+
+xlims <- as.POSIXct(c('2017-01-01 00:00', '2017-12-31 23:00'))
+plot(do_temp$datetime, do_temp$do_temp, xlim = xlims, pch = '.', ylim = c(5,8))
+plot(all_times, temp, xlim = xlims, pch = '.', ylim = c(5,8))
+
+do_temp$interp <- temp 
+
+do_temp$interp_val[is.na(do_temp$do_temp)] <- 'yes'
+do_temp$interp_val[is.na(do_temp$do_temp) == FALSE] <- 'no'
+
+plot(do_temp$datetime, do_temp$do_temp, xlim = xlims, pch = '.', ylim = c(5,8))
+points(do_temp$datetime[do_temp$interp_val == 'yes'], do_temp$interp[do_temp$interp_val == 'yes'], pch = '.', cex = 1.5, col = 'red')
+
+# Look at the area with alot of missing data
+xlims <- as.POSIXct(c('2017-11-20 00:00', '2017-11-30 23:00'))
+ylims <- c(7.0, 7.4)
+
+plot(do_temp$datetime, do_temp$do_temp, xlim = xlims, pch = '.', ylim = ylims)
+
+points(do_temp$datetime[do_temp$interp_val == 'yes'], do_temp$interp[do_temp$interp_val == 'yes'], pch = '.', col = 'red')
+
+# This is doing a linear interpolation between points. How do I get it to do a stl interpolation?
+
+                   
+                   
+
+
+```
+
+
 Outlier identification with methods that account for missing data
 sltplus package
 
@@ -992,6 +1048,31 @@ iqr <- quants[4] - quants[2]
 
 iqr_3x <- iqr * 3
 
+plot(stlDaily$time, stlDaily$data$remainder, ylim = c(-2*iqr_3x,2*iqr_3x), pch = ".")
+abline(h = iqr_3x)
+abline(h = -iqr_3x)
+
+# Flag observations beyond 3x the iqr
+stlDaily$data$outlier <- "no"
+stlDaily$data$outlier[stlDaily$data$remainder > iqr_3x] <- "yes"
+stlDaily$data$outlier[stlDaily$data$remainder < -iqr_3x] <- "yes"
+
+# with(stlDaily$data[stlDaily$data$outlier == "no",], plot(stlDaily$time, stlDaily$data$remainder, ylim = c(-2*iqr_3x,2*iqr_3x), pch = ".")
+
+out <- as.data.frame(stlDaily$data)
+out$time <- stlDaily$time
+
+# Plot remainder
+plot(out$time, out$remainder, ylim = c(-2*iqr_3x,2*iqr_3x), pch = ".")
+abline(h = iqr_3x)
+abline(h = -iqr_3x)
+points(out$time[out$outlier == "yes"], out$remainder[out$outlier == "yes"], pch = 19, col = "red")
+
+# Plot raw values
+xlims <- as.POSIXct(c('2017-04-01 00:00', '2017-04-05 00:00'))
+
+plot(out$time, out$raw, pch = ".", ylim = c(5.2,5.4), xlim = xlims)
+points(out$time[out$outlier == "yes"], out$raw[out$outlier == "yes"], pch = 19, col = "red", cex = 0.5)
 
 
 
