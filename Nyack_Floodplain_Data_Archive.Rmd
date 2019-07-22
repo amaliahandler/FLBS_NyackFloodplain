@@ -1112,6 +1112,11 @@ anom_do_temp_stn %>%
 Okay, try and impliment so kind of automated outlier detection
 
 ```{r}
+library(tidyverse)
+library(imputTS)
+library(anomalize)
+library(tibbletime)
+
 # Anomoly detection, removal, and flagging
 
 # Remove instances where all three sensors are questionable. These are overwhelming instances when the sensors were pulled for servicing/calibration or conducting experiments or collecting samples from the sensor site.
@@ -1142,7 +1147,8 @@ nrow(ha_water[which(ha_water$cond == 0.005 & ha_water$site == "HA02"), ])
 nrow(ha_water[which(ha_water$level_m < 0), ])
 
 # Break up the data into DO, conductivity, and water level dataframes
-ha_do    <- ha_water[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp', 'do_sat')]
+# Remove the do saturation, I will calculate this later based on the cleaned data and using the function Bob developed.
+ha_do    <- ha_water[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp')]
 ha_cond  <- ha_water[, c('site', 'sensor_number', 'datetime', 'cond', 'cond_temp', 'ct')]
 ha_level <- ha_water[, c('site', 'sensor_number', 'datetime', 'level_m', 'level_temp')]
 
@@ -1157,6 +1163,90 @@ ha_cond[which(ha_cond$ct < 0),]
 
 # At this point, I need to start the process of breaking up the data, interpolating between missing data sources, and running the anomalize package to ID outliers, then add the data back with the potential outliers removed.
 # Should start with the DO temperature data 
+
+# Compile a list where each list item is the data from a unique sensor number
+ha_do_list <- split(ha_do, f = as.factor(ha_do$sensor_number))
+
+# Gap filling
+# Create a new list that has a row for every datetime between the first observation and last observation for each site. 
+gap_fill <- lapply(ha_do_list, function(x){
+  time_vec  <- seq(from = min(na.omit(x$datetime)), to = max(na.omit(x$datetime)), by = "1 hour")
+  all_times <- data.frame(datetime = time_vec)
+  return(all_times)
+})
+
+# Merge the do_temp data into the above list
+gap_fill <- lapply(seq(gap_fill), function(i){
+  merge(gap_fill[[i]], ha_do_list[[i]], by = "datetime", all.x = TRUE)
+})
+
+# Interpolate the missing temperature data, add a column to indicate whether the data are interpolated (helpful for plotting purposes)
+gap_fill <- lapply(gap_fill, function(x){
+  # Interpolate data
+  x$do_temp_interp <- na_interpolation(x$do_temp, option = "linear")
+  
+  # Column to identify interpolated values
+  x$interp <- 'no'
+  x$interp[is.na(x$do_temp)] <- 'yes'
+  
+  # Return the whole list
+  return(x)
+})
+
+# Convert the df to a tibble time object (required for the anomalize package).
+gap_fill <- lapply(gap_fill, function(x){
+  as_tbl_time(x, datetime)
+})
+
+# Anomaly identification
+# Run the anomaly detection process
+anom_do_temp <- lapply(seq_along(gap_fill), function(i){
+  gap_fill[[i]] %>%  
+    time_decompose(do_temp_interp, 
+                   method = "stl",
+                   frequency = "24 hours",
+                   trend = "2 weeks") %>%
+    anomalize(remainder, 
+              method = "iqr", 
+              alpha = 0.025) %>%
+    time_recompose()
+})
+
+
+# Visualize the results
+# x <- ha_files[2:8]
+
+x         <- anom_do_temp
+y_label   <- "Temp (C)"
+
+png("./Figures/DO_temp_anomaly_det.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(seq_along(gap_fill), function(i){
+  # Plot raw data
+  plot(gap_fill[[i]]$datetime, gap_fill[[i]]$do_temp, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+
+  # Plot interpolated data
+  points(gap_fill[[i]]$datetime[gap_fill[[i]]$interp == 'yes'],
+         gap_fill[[i]]$do_temp_interp[gap_fill[[i]]$interp == 'yes'],
+         pch = 20, cex.pch = 2, col = 'blue')
+  
+  # Highlight detected anomalies
+  points(anom_do_temp[[i]]$datetime[anom_do_temp[[i]]$anomaly == 'Yes'],
+         anom_do_temp[[i]]$observed[anom_do_temp[[i]]$anomaly == 'Yes'],
+         pch = 1, cex.pch = 2, col = 'red')
+    
+  title(paste(gap_fill[[i]][1,2], gap_fill[[i]][1,3], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+
+  }
+)
+
+dev.off()
 
 
 ```
