@@ -1167,6 +1167,32 @@ ha_cond[which(ha_cond$ct < 0),]
 # Compile a list where each list item is the data from a unique sensor number
 ha_do_list <- split(ha_do, f = as.factor(ha_do$sensor_number))
 
+# Because anomalous zero values are especially problematic for the gap-filling process, I am going to remove them from some of the sensors. I couldn't figure out a process to systematically remove these from sensors where these are anomalous versus part of the typical variation for the sensor.
+
+# Sensors with anomalous zero values (as evaluated based on time series figures from each sensor): 1, 3, 4, 5, 7, 8
+ha_do_list <- lapply(ha_do_list, function(x){
+  if(x$sensor_number[1] == '01' | x$sensor_number[1] == '03' |
+     x$sensor_number[1] == '04' | x$sensor_number[1] == '05' |
+     x$sensor_number[1] == '07' | x$sensor_number[1] == '08'){
+    x <- x[-which(x$do_temp <= 0), ]
+     } else {x}
+})
+
+# Other known bad data based on the service log for the sensors
+# HA12_05 was throwing bad DO data from 2013-06-15 until the cable was replaced on 2013-08-27 and had reasonable data starting at 12:00.
+# During much of this period, the temperature data was constant and the DO concentration was NaN values.
+# Remove all data from this period that had NaN DO concentration values. Also need to remove the two observations from 08-10 and 08-27 because these observations are anomalous.
+ha_do_list[[5]] <- ha_do_list[[5]][-which(ha_do_list[[5]]$datetime >= 
+                                           as.POSIXct('2013-06-15 00:00') & 
+                              ha_do_list[[5]]$datetime <= as.POSIXct('2013-08-27 11:00') &
+                              is.finite(ha_do_list[[5]]$do_conc) == FALSE),]
+
+ha_do_list[[5]] <- ha_do_list[[5]][-which(ha_do_list[[5]]$datetime >= 
+                                           as.POSIXct('2013-08-10 00:00') & 
+                              ha_do_list[[5]]$datetime <= as.POSIXct('2013-08-27 11:00')),]
+
+
+
 # Gap filling
 # Create a new list that has a row for every datetime between the first observation and last observation for each site. 
 gap_fill <- lapply(ha_do_list, function(x){
@@ -1214,12 +1240,14 @@ anom_do_temp <- lapply(seq_along(gap_fill), function(i){
 
 
 # Visualize the results
-# x <- ha_files[2:8]
 
-x         <- anom_do_temp
+# Based on a first pass of the analysis, it appears that the outlier zeros in the data at some (mostly groundwater) sensors are particularly problematic because the often occur following or proceeding a gap in observations. As a result, the gap filling process is making these outlier appear consisten with the larger trend. I will revise the analysis above to remove these zero temp outliers.
+
+# Redo visualization with anomalous zeros removed from sensors 1, 3, 4, 5, 7, 8
+
 y_label   <- "Temp (C)"
 
-png("./Figures/DO_temp_anomaly_det.png", units = "in", 
+png("./Figures/DO_temp_anomaly_det_zero_rm.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
@@ -1251,6 +1279,60 @@ dev.off()
 
 ```
 
+Filed under: Things I tried and didn't work out.
+
+```{r}
+
+# Based on a first pass of the analysis, it appears that the outlier zeros in the data at some (mostly groundwater) sensors are particularly problematic because the often occur following or proceeding a gap in observations. As a result, the gap filling process is making these outlier appear consisten with the larger trend. I will revise the analysis above to remove these zero temp outliers.
+
+# The process I tried below failed to flag these zero observations and also flagged some observations that are likley consistent with the data (especially high temperature data).
+
+# Experiment with removing outlier zeros from the dataframes
+# Try removing data >3 SD from the mean
+mean_sd <- lapply(ha_do_list, function(x){
+  mean_temp <- mean(na.omit(x$do_temp))
+  sd_temp   <- sd(na.omit(x$do_temp))
+  max_cut   <- mean_temp + 4 * sd_temp
+  min_cut   <- mean_temp - 4 * sd_temp
+  return(c(mean_temp, sd_temp, max_cut, min_cut))
+})
+
+# Flag values that are above/below 4 SD from the mean
+cutoff <- lapply(seq_along(ha_do_list), function(i){
+  ha_do_list[[i]]$outlier <- "no"
+  ha_do_list[[i]]$outlier[ha_do_list[[i]]$do_temp > mean_sd[[i]][3]] <- "yes"
+  ha_do_list[[i]]$outlier[ha_do_list[[i]]$do_temp < mean_sd[[i]][4]] <- "yes"
+  return(ha_do_list[[i]])
+})
+
+# Plot it out
+y_label   <- "Temp (C)"
+
+png("./Figures/DO_temp_rm4sd.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(seq_along(cutoff), function(i){
+  # Plot raw data
+  plot(cutoff[[i]]$datetime, cutoff[[i]]$do_temp, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+
+  # Highlight points that are beyond 4 sds from the mean
+  points(cutoff[[i]]$datetime[cutoff[[i]]$outlier == 'yes'],
+         cutoff[[i]]$do_temp[cutoff[[i]]$outlier == 'yes'],
+         pch = 1, cex.pch = 2, col = 'red')
+    
+  title(paste(cutoff[[i]][1,2], cutoff[[i]][1,3], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+
+  }
+)
+
+dev.off()
+
+```
 
 
 Outlier identification with methods that account for missing data
