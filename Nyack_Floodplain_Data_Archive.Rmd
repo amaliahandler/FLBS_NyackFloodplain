@@ -1191,7 +1191,20 @@ ha_do_list[[5]] <- ha_do_list[[5]][-which(ha_do_list[[5]]$datetime >=
                                            as.POSIXct('2013-08-10 00:00') & 
                               ha_do_list[[5]]$datetime <= as.POSIXct('2013-08-27 11:00')),]
 
+# Do the same manual process for sensor 09, which has a bunch of periods with uniform temperature data. The sensor service log indicates that this sensor was experiencing similar issues to sensor 5.
+ha_do_list[[9]] <- ha_do_list[[9]][-which(ha_do_list[[9]]$datetime >= 
+                                           as.POSIXct('2018-01-01 00:00') &
+                              is.finite(ha_do_list[[9]]$do_conc) == FALSE),]
 
+# Same problem for sensor 06 2019
+ha_do_list[[6]] <- ha_do_list[[6]][-which(ha_do_list[[6]]$datetime >= 
+                                           as.POSIXct('2019-01-01 00:00') &
+                              is.finite(ha_do_list[[6]]$do_conc) == FALSE),]
+
+# And for sensor 08 in 2019. I identified the last good observation as 2019-04-12 05:00.
+ha_do_list[[8]] <- ha_do_list[[8]][-which(ha_do_list[[8]]$datetime > 
+                                           as.POSIXct('2019-04-12 05:00') &
+                              is.finite(ha_do_list[[8]]$do_conc) == FALSE),]
 
 # Gap filling
 # Create a new list that has a row for every datetime between the first observation and last observation for each site. 
@@ -1238,36 +1251,40 @@ anom_do_temp <- lapply(seq_along(gap_fill), function(i){
     time_recompose()
 })
 
+# Merge the anomaly data into the gap_fill df
+do_temp_anom <- lapply(seq_along(gap_fill), function(i){
+  gap_fill[[i]]$anomaly <- anom_do_temp[[i]]$anomaly
+  return(gap_fill[[i]])
+}) 
 
 # Visualize the results
 
 # Based on a first pass of the analysis, it appears that the outlier zeros in the data at some (mostly groundwater) sensors are particularly problematic because the often occur following or proceeding a gap in observations. As a result, the gap filling process is making these outlier appear consisten with the larger trend. I will revise the analysis above to remove these zero temp outliers.
 
 # Redo visualization with anomalous zeros removed from sensors 1, 3, 4, 5, 7, 8
+# This appears to have improved the anomaly detection (fewer of the anomalous zero data points remaining unflagged due to gap filling normalizing these data points)
+
+# Redo visualization after removing the instances where a faulty RDO cable was causing the sensor to record near constant temperature and "NaN" values for DO concentration in sensor 5 and 9.
+# This appears to look good at this macro scale. I need to "zoom in" on each site to check that the anomaly detection process is catching actual outliers rather than typical variation in the data (due to floods, etc.).
 
 y_label   <- "Temp (C)"
 
-png("./Figures/DO_temp_anomaly_det_zero_rm.png", units = "in", 
+png("./Figures/DO_temp_anomaly_wo_interp.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
 
-lapply(seq_along(gap_fill), function(i){
-  # Plot raw data
-  plot(gap_fill[[i]]$datetime, gap_fill[[i]]$do_temp, xlab = " ", ylab = y_label, 
-       cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+lapply(do_temp_anom, function(x){
+  # Plot raw data, without the interpolated data
+  plot(x$datetime[x$interp == 'no'], x$do_temp[x$interp == 'no'], 
+       xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
 
-  # Plot interpolated data
-  points(gap_fill[[i]]$datetime[gap_fill[[i]]$interp == 'yes'],
-         gap_fill[[i]]$do_temp_interp[gap_fill[[i]]$interp == 'yes'],
-         pch = 20, cex.pch = 2, col = 'blue')
-  
-  # Highlight detected anomalies
-  points(anom_do_temp[[i]]$datetime[anom_do_temp[[i]]$anomaly == 'Yes'],
-         anom_do_temp[[i]]$observed[anom_do_temp[[i]]$anomaly == 'Yes'],
+  # Highlight detected anomalies in raw data (not including interpolated data)
+  points(x$datetime[x$anomaly == 'Yes' & x$interp == 'no'],
+         x$do_temp[x$anomaly == 'Yes' & x$interp == 'no'],
          pch = 1, cex.pch = 2, col = 'red')
     
-  title(paste(gap_fill[[i]][1,2], gap_fill[[i]][1,3], sep = '_'), 
+  title(paste(x[1,2], x[1,3], sep = '_'), 
         line = 0.5, cex.main = 2)
   box(lwd = 2)
 
@@ -1275,6 +1292,10 @@ lapply(seq_along(gap_fill), function(i){
 )
 
 dev.off()
+
+# Now look at individual sites to see how the anomaly detection is working. Are anomalies flagged? Are variable data due to flooding or other phase shifts falsely IDed as anomalies?
+
+
 
 
 ```
