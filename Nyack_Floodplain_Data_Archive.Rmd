@@ -1164,6 +1164,10 @@ ha_cond[which(ha_cond$ct < 0),]
 # At this point, I need to start the process of breaking up the data, interpolating between missing data sources, and running the anomalize package to ID outliers, then add the data back with the potential outliers removed.
 # Should start with the DO temperature data 
 
+# When the RDO sensor is throwing NaN values, the temperature sensor seems to "freeze" and report the same number over and over or report a zero value. Based on the sensor service log, it appears that most of these prolonged instances occured because there was a kink in the RDO cord that had to be replaced before the sensor would begin report reasonable values again. For this reason, I will remove all data where the DO concentration is NaN.
+ha_do <- ha_do[which(is.finite(ha_do$do_conc) == TRUE),]
+
+
 # Compile a list where each list item is the data from a unique sensor number
 ha_do_list <- split(ha_do, f = as.factor(ha_do$sensor_number))
 
@@ -1171,40 +1175,53 @@ ha_do_list <- split(ha_do, f = as.factor(ha_do$sensor_number))
 
 # Sensors with anomalous zero values (as evaluated based on time series figures from each sensor): 1, 3, 4, 5, 7, 8
 ha_do_list <- lapply(ha_do_list, function(x){
-  if(x$sensor_number[1] == '01' | x$sensor_number[1] == '03' |
-     x$sensor_number[1] == '04' | x$sensor_number[1] == '05' |
-     x$sensor_number[1] == '07' | x$sensor_number[1] == '08'){
+  if(x$sensor_number[1] == '01' | x$sensor_number[1] == '04' | 
+     x$sensor_number[1] == '05'){
     x <- x[-which(x$do_temp <= 0), ]
-     } else {x}
+  } else {x}
+  return(x)
 })
 
-# Other known bad data based on the service log for the sensors
-# HA12_05 was throwing bad DO data from 2013-06-15 until the cable was replaced on 2013-08-27 and had reasonable data starting at 12:00.
-# During much of this period, the temperature data was constant and the DO concentration was NaN values.
-# Remove all data from this period that had NaN DO concentration values. Also need to remove the two observations from 08-10 and 08-27 because these observations are anomalous.
-ha_do_list[[5]] <- ha_do_list[[5]][-which(ha_do_list[[5]]$datetime >= 
-                                           as.POSIXct('2013-06-15 00:00') & 
-                              ha_do_list[[5]]$datetime <= as.POSIXct('2013-08-27 11:00') &
-                              is.finite(ha_do_list[[5]]$do_conc) == FALSE),]
 
-ha_do_list[[5]] <- ha_do_list[[5]][-which(ha_do_list[[5]]$datetime >= 
-                                           as.POSIXct('2013-08-10 00:00') & 
-                              ha_do_list[[5]]$datetime <= as.POSIXct('2013-08-27 11:00')),]
+# Glitches in sensor DO data are really difficult to distinguish from flood data. I am removing these instances from sensor 9 because they are difficult for this reason. I determined that they are glitches in the RDO sensor based on visually inspecting the temperature data and comparing this to the other sensor data (water level, cond, other temp data) to evaluate for peak matching.
+# Is the temp anomaly data from sensor 9 in 2017 really an outlier or a flood? Answer: Probably bad data, no evidence of flood from this period.
 
-# Do the same manual process for sensor 09, which has a bunch of periods with uniform temperature data. The sensor service log indicates that this sensor was experiencing similar issues to sensor 5.
-ha_do_list[[9]] <- ha_do_list[[9]][-which(ha_do_list[[9]]$datetime >= 
-                                           as.POSIXct('2018-01-01 00:00') &
-                              is.finite(ha_do_list[[9]]$do_conc) == FALSE),]
+# Glitch 1
+glitch1_srt <- as.POSIXct('2017-10-01 13:00')
+glitch1_end <- as.POSIXct('2017-10-03 14:00')
 
-# Same problem for sensor 06 2019
-ha_do_list[[6]] <- ha_do_list[[6]][-which(ha_do_list[[6]]$datetime >= 
-                                           as.POSIXct('2019-01-01 00:00') &
-                              is.finite(ha_do_list[[6]]$do_conc) == FALSE),]
+# xlims <- as.POSIXct(c('2017-10-01 13:00', '2017-10-03 14:00'))
+# xlims <- as.POSIXct(c('2017-09-30 00:00', '2017-10-05 23:00'))
+# par(mfrow = c(2,1))
+# plot(ha_do$datetime[ha_do$sensor_number=='09'],
+#      ha_do$do_temp[ha_do$sensor_number=='09'],
+#      xlim = xlims, , ylim =  c(7, 14))
+# 
+# plot(ha_level$datetime[ha_level$sensor_number=='09'],
+#      ha_level$level_m[ha_level$sensor_number=='09'],
+#      xlim = xlims, , ylim = c(1.75,1.95))
 
-# And for sensor 08 in 2019. I identified the last good observation as 2019-04-12 05:00.
-ha_do_list[[8]] <- ha_do_list[[8]][-which(ha_do_list[[8]]$datetime > 
-                                           as.POSIXct('2019-04-12 05:00') &
-                              is.finite(ha_do_list[[8]]$do_conc) == FALSE),]
+# Glitch 2
+glitch2_srt <- as.POSIXct('2017-05-07 05:00')
+glitch2_end <- as.POSIXct('2017-05-07 11:00')
+
+# xlims <- as.POSIXct(c('2017-05-07 05:00', '2017-05-07 11:00'))
+# xlims <- as.POSIXct(c('2017-05-07 00:00', '2017-05-07 23:00'))
+# par(mfrow = c(2,1))
+# plot(ha_do$datetime[ha_do$sensor_number=='09'],
+#      ha_do$do_temp[ha_do$sensor_number=='09'],
+#      xlim = xlims, , ylim =  c(3, 8))
+# 
+# plot(ha_level$datetime[ha_level$sensor_number=='09'],
+#      ha_level$level_m[ha_level$sensor_number=='09'],
+#      xlim = xlims, ylim = c(3.4, 3.6))
+
+# Remove the glitches
+ha_do_list[[9]] <- ha_do_list[[9]][-which(ha_do_list[[9]]$datetime >= glitch1_srt &
+                                          ha_do_list[[9]]$datetime <= glitch1_end),]
+
+ha_do_list[[9]] <- ha_do_list[[9]][-which(ha_do_list[[9]]$datetime >= glitch2_srt &
+                                          ha_do_list[[9]]$datetime <= glitch2_end),]
 
 # Gap filling
 # Create a new list that has a row for every datetime between the first observation and last observation for each site. 
@@ -1240,6 +1257,11 @@ gap_fill <- lapply(gap_fill, function(x){
 # Anomaly identification
 # Run the anomaly detection process
 anom_do_temp <- lapply(seq_along(gap_fill), function(i){
+  # Process for surface water sensors
+  if(gap_fill[[i]]$sensor_number[1] == '02' |
+     gap_fill[[i]]$sensor_number[1] == '06' |
+     gap_fill[[i]]$sensor_number[1] == '08' |
+     gap_fill[[i]]$sensor_number[1] == '10' ){
   gap_fill[[i]] %>%  
     time_decompose(do_temp_interp, 
                    method = "stl",
@@ -1247,8 +1269,21 @@ anom_do_temp <- lapply(seq_along(gap_fill), function(i){
                    trend = "2 weeks") %>%
     anomalize(remainder, 
               method = "iqr", 
-              alpha = 0.025) %>%
+              alpha = 0.015) %>%
     time_recompose()
+  } else { 
+    # Process for well sensors
+  gap_fill[[i]] %>%  
+    time_decompose(do_temp_interp, 
+                   method = "stl",
+                   frequency = "24 hours",
+                   trend = "2 weeks") %>%
+    anomalize(remainder, 
+              method = "iqr", 
+              alpha = 0.002) %>% #,
+              #max_anoms = 0.001) %>%
+    time_recompose()
+     }
 })
 
 # Merge the anomaly data into the gap_fill df
@@ -1259,6 +1294,8 @@ do_temp_anom <- lapply(seq_along(gap_fill), function(i){
 
 # Visualize the results
 
+# Notes about the interative process of finding something that works
+
 # Based on a first pass of the analysis, it appears that the outlier zeros in the data at some (mostly groundwater) sensors are particularly problematic because the often occur following or proceeding a gap in observations. As a result, the gap filling process is making these outlier appear consisten with the larger trend. I will revise the analysis above to remove these zero temp outliers.
 
 # Redo visualization with anomalous zeros removed from sensors 1, 3, 4, 5, 7, 8
@@ -1267,9 +1304,19 @@ do_temp_anom <- lapply(seq_along(gap_fill), function(i){
 # Redo visualization after removing the instances where a faulty RDO cable was causing the sensor to record near constant temperature and "NaN" values for DO concentration in sensor 5 and 9.
 # This appears to look good at this macro scale. I need to "zoom in" on each site to check that the anomaly detection process is catching actual outliers rather than typical variation in the data (due to floods, etc.).
 
+# After "zooming in" I've found that this process flags temperature changes that happen durring floods, which can cause a sudden change in the well water temperature for up to a week. Because the trend information is calculated for a two-week period, it glosses over the flood data. I will try setting the trend component to a shorter period of time.
+
+# Set the IQR value to 0.005 and trend to 2 days, but a lot of flood data is still being flagged as an outlier. I am now going to adjust the maximum anomalies value to try and reduce the number of observations flagged.
+
+# Changing the max anoms to 0.0005 flagged mostly appropriate outliers for the wells, but it forced the process to ID outliers for the surface water sensors, often where there are none (such as for CASC, 06). Maybe take a tiered approach, where the surface water sensors have whatever IQR and alpha setting work for those sites and the well water uses the max_anoms functionality.
+
+# After making a separate outlier detection process for the surface water and wells, it seems that the glitches in sensor 09 are tough to distinguish from flood data. I have removed these glitches to help with the tuning of the alpha parameter.
+
+# Moving in the right direction! Some of the flood data from sensor 1 and 9 is still being flagged. Continue adjusting the alpha values.
+
 y_label   <- "Temp (C)"
 
-png("./Figures/DO_temp_anomaly_wo_interp.png", units = "in", 
+png("./Figures/DO_temp_anomaly_with_surface_well_diff.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
@@ -1295,8 +1342,180 @@ dev.off()
 
 # Now look at individual sites to see how the anomaly detection is working. Are anomalies flagged? Are variable data due to flooding or other phase shifts falsely IDed as anomalies?
 
+# Is the early data from sensor 01 OK?
+xlims <- as.POSIXct(c('2011-12-10 00:00', '2012-04-30 23:00'))
+ylims <- c(4, 7)
+
+anom_do_temp[[1]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+par(mfrow = c(2,1))
+plot(ha_do_list[[1]]$datetime, ha_do_list[[1]]$do_temp, ylim = ylims, xlim = xlims)
+abline(v = as.POSIXct('2012-04-12 00:00'))
+abline(v = as.POSIXct('2012-04-26 00:00'))
+
+plot(ha_water$datetime[ha_water$sensor_number == '01'], 
+     ha_water$level_m[ha_water$sensor_number == '01'], 
+     xlim = xlims, ylim = c(2.4,3.1))
+abline(v = as.POSIXct('2012-04-12 00:00'))
+abline(v = as.POSIXct('2012-04-26 00:00'))
+
+# Seems that most of this early variation is due to floods that caused the temp to drop in the well. I'm inclined to believe that these data are fine (with the exception of the two very high observations).
+
+# What about later in the year?
+xlims <- as.POSIXct(c('2014-06-20 00:00', '2014-07-02 23:00'))
+ylims <- c(4.5, 20)
+anom_do_temp[[1]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+# Looks like there is more of that data where temp is constant and DO is probably NaN
+# Also potentially more floods
+xlims <- as.POSIXct(c('2013-03-01 00:00', '2013-04-30 23:00'))
+ylims <- c(4.5, 5.5)
+anom_do_temp[[1]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+par(mfrow = c(2,1))
+plot(ha_do_list[[1]]$datetime, 
+     ha_do_list[[1]]$do_temp, ylim = ylims, xlim = xlims)
+
+plot(ha_water$datetime[ha_water$sensor_number == '01'], 
+     ha_water$level_temp[ha_water$sensor_number == '01'], 
+     xlim = xlims, , ylim = c(4.5,5.5))
+
+xlims <- as.POSIXct(c('2013-04-08 00:00', '2013-04-25 23:00'))
+ylims <- c(4.4, 5.2)
+anom_do_temp[[1]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+# More issues associated with floods but are actually totally fine data (I think)
+# Grr, really wish I could figure out a correlated variable outlier analysis. Using the water level data from the same sight would probably address this issue.
+
+test <- lm(do_temp ~ level_m, data = ha_water[ha_water$sensor_number == '01',]); summary(test)
+test <- lm(do_temp ~ level_temp, data = ha_water[ha_water$sensor_number == '01',]); summary(test)
+
+# Actually, it appears that the relationship between water level and do temperature is not all that great
+
+# Are there similar flood issues at other sites?
+
+# Sensor 3
+xlims <- as.POSIXct(c('2018-07-13 00:00', '2018-07-20 23:00'))
+ylims <- c(5.6, 5.9)
+
+anom_do_temp[[3]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='03'], ha_level$level_m[ha_level$sensor_number=='03'], xlim = xlims, ylim = c(3.2,3.4))
+
+plot(ha_level$datetime[ha_level$sensor_number=='03'], ha_level$level_temp[ha_level$sensor_number=='03'], xlim = xlims, ylim = c(5.6,5.9))
+# This data blip is likely due to a sensor glitch during a change in the program on 2018-07-16
+
+# Sensor 4
+xlims <- as.POSIXct(c('2012-03-20 00:00', '2012-07-01 23:00'))
+ylims <- c(3, 6.5)
+
+anom_do_temp[[4]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+xlims <- as.POSIXct(c('2012-03-25 00:00', '2012-04-15 23:00'))
+ylims <- c(3, 4.1)
+
+anom_do_temp[[4]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='04'], ha_level$level_m[ha_level$sensor_number=='04'], xlim = xlims, ylim = c(2.1,2.35))
+
+length(do_temp_anom[[4]]$anomaly[do_temp_anom[[4]]$anomaly == "Yes"])
+
+# This anomaly detection process performs really poorly with the floods affecting the data. This is probably because the trend is set to two weeks, which is long enough to flag a 4-7 day flood.
+
+# Is the really low temperature data from sensor 8 in 2015 really an outlier or a flood? Answer: flood, fo sho.
+xlims <- as.POSIXct(c('2015-03-15 00:00', '2015-03-18 23:00'))
+ylims <- c(0, 6.5)
+
+anom_do_temp[[8]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='08'], ha_level$level_m[ha_level$sensor_number=='08'], xlim = xlims, ylim = c(.5,1.15))
+abline(v = as.POSIXct('2015-03-16 00:00'))
+abline(v = as.POSIXct('2015-03-18 00:00'))
+
+# Is the temp anomaly data from sensor 9 in 2017 really an outlier or a flood? Answer: Probably bad data, no evidence of flood from this period.
+xlims <- as.POSIXct(c('2017-09-30 00:00', '2017-10-05 23:00'))
+ylims <- c(7, 14)
+
+anom_do_temp[[9]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='09'], ha_level$level_m[ha_level$sensor_number=='09'], xlim = xlims, , ylim = c(1.75,1.95))
+abline(v = as.POSIXct('2017-10-01 00:00'))
+abline(v = as.POSIXct('2017-10-04 00:00'))
+
+plot(ha_level$datetime[ha_level$sensor_number=='09'], ha_level$level_temp[ha_level$sensor_number=='09'], xlim = xlims, ylim = c(13.45,13.85))
+
+plot(ha_cond$datetime[ha_level$sensor_number=='09'], ha_cond$cond[ha_level$sensor_number=='09'], xlim = xlims, ylim = c(.2,.25))
 
 
+# Another glitch in sensor 09
+xlims <- as.POSIXct(c('2017-05-06 00:00', '2017-05-8 23:00'))
+ylims <- c(3, 8)
+
+anom_do_temp[[9]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='09'], ha_level$level_temp[ha_level$sensor_number=='09'], xlim = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='09'], ha_level$level_m[ha_level$sensor_number=='09'], xlim = xlims, ylim = c(3,3.5))
+
+plot(ha_cond$datetime[ha_level$sensor_number=='09'], ha_cond$cond[ha_level$sensor_number=='09'], xlim = xlims)
+
+# Flood
+xlims <- as.POSIXct(c('2013-06-05 00:00', '2013-06-10 23:00'))
+ylims <- c(5, 10)
+
+anom_do_temp[[9]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='09'], ha_level$level_m[ha_level$sensor_number=='09'], xlim = xlims, ylim = c(3.2,3.6))
+
+# Is the temp anomaly data from sensor 1 in 2014 really an outlier or a flood? Answer: Not a flood, looks like some kind of glitch across sensors. Probably bad data.
+xlims <- as.POSIXct(c('2014-06-26 00:00', '2014-06-30 23:00'))
+ylims <- c(4, 20)
+
+anom_do_temp[[1]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='01'], ha_level$level_m[ha_level$sensor_number=='01'], xlim = xlims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='01'], ha_level$level_temp[ha_level$sensor_number=='01'], xlim = xlims)
+
+plot(ha_cond$datetime[ha_level$sensor_number=='01'], ha_cond$cond[ha_level$sensor_number=='01'], xlim = xlims)
+
+plot(ha_cond$datetime[ha_level$sensor_number=='01'], ha_cond$cond_temp[ha_level$sensor_number=='01'], xlim = xlims)
 
 ```
 
