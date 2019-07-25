@@ -1254,14 +1254,23 @@ gap_fill <- lapply(gap_fill, function(x){
   as_tbl_time(x, datetime)
 })
 
+
+# After a lot of trying to tune the alpha parameter, I think the best approach is to use a different alpha level for each well. This is because each well has a unique variability and some wells are more sensitive to influence from flood than others.
+sensor <- c(paste('0',c(1:9),sep = ''), '10')
+alpha  <- c(0.0005, #1
+            0.010,  #2
+            0.001,  #3
+            0.002,  #4
+            0.003,  #5
+            0.015,  #6
+            0.0025, #7
+            0.010,  #8
+            0.0015, #9
+            0.015) #10
+
 # Anomaly identification
 # Run the anomaly detection process
 anom_do_temp <- lapply(seq_along(gap_fill), function(i){
-  # Process for surface water sensors
-  if(gap_fill[[i]]$sensor_number[1] == '02' |
-     gap_fill[[i]]$sensor_number[1] == '06' |
-     gap_fill[[i]]$sensor_number[1] == '08' |
-     gap_fill[[i]]$sensor_number[1] == '10' ){
   gap_fill[[i]] %>%  
     time_decompose(do_temp_interp, 
                    method = "stl",
@@ -1269,21 +1278,8 @@ anom_do_temp <- lapply(seq_along(gap_fill), function(i){
                    trend = "2 weeks") %>%
     anomalize(remainder, 
               method = "iqr", 
-              alpha = 0.015) %>%
+              alpha = alpha[i]) %>%
     time_recompose()
-  } else { 
-    # Process for well sensors
-  gap_fill[[i]] %>%  
-    time_decompose(do_temp_interp, 
-                   method = "stl",
-                   frequency = "24 hours",
-                   trend = "2 weeks") %>%
-    anomalize(remainder, 
-              method = "iqr", 
-              alpha = 0.002) %>% #,
-              #max_anoms = 0.001) %>%
-    time_recompose()
-     }
 })
 
 # Merge the anomaly data into the gap_fill df
@@ -1314,9 +1310,13 @@ do_temp_anom <- lapply(seq_along(gap_fill), function(i){
 
 # Moving in the right direction! Some of the flood data from sensor 1 and 9 is still being flagged. Continue adjusting the alpha values.
 
+# I think I really just have to have individual alpha values for each station. It's too difficult finding one value that fits each of the wells because they all have different variability. Some are heavily influenced by floods and other are not.
+
+# Okay, alter tuning the alphas for each sensor, I believe we have a cleaned dataset! Now I need to recompose a dataframe with a sensible missing number value (-999?) for when the sensors glitched or were on the fritz. Then impliment a flag for data that is tagged as anomalous through this process.
+
 y_label   <- "Temp (C)"
 
-png("./Figures/DO_temp_anomaly_with_surface_well_diff.png", units = "in", 
+png("./Figures/DO_temp_anomaly_well_diff_alphas.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
@@ -1342,9 +1342,9 @@ dev.off()
 
 # Now look at individual sites to see how the anomaly detection is working. Are anomalies flagged? Are variable data due to flooding or other phase shifts falsely IDed as anomalies?
 
-# Is the early data from sensor 01 OK?
+# Is the early data from sensor 01 OK? Yes, looks like floods
 xlims <- as.POSIXct(c('2011-12-10 00:00', '2012-04-30 23:00'))
-ylims <- c(4, 7)
+ylims <- c(3, 7)
 
 anom_do_temp[[1]] %>%
   plot_anomalies(time_recomposed = TRUE) +
@@ -1419,6 +1419,14 @@ plot(ha_level$datetime[ha_level$sensor_number=='03'], ha_level$level_m[ha_level$
 
 plot(ha_level$datetime[ha_level$sensor_number=='03'], ha_level$level_temp[ha_level$sensor_number=='03'], xlim = xlims, ylim = c(5.6,5.9))
 # This data blip is likely due to a sensor glitch during a change in the program on 2018-07-16
+
+xlims <- as.POSIXct(c('2018-05-01 00:00', '2018-07-05 23:00'))
+ylims <- c(4, 10)
+
+anom_do_temp[[3]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
 
 # Sensor 4
 xlims <- as.POSIXct(c('2012-03-20 00:00', '2012-07-01 23:00'))
