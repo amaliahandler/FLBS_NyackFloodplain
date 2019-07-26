@@ -396,10 +396,10 @@ file_info <- lapply(ha_comb, function(x){
 
 # Renames the timestamp column and remove the records column in the met data
 # Add a site column
-ha07_met <- ha_comb$ha07met
-ha07_met$site <- "ha07" 
+ha07_met               <- ha_comb$ha07met
+ha07_met$site          <- "ha07" 
 ha07_met$sensor_number <- "met"
-colnames(ha07_met)[1] <- "datetime"
+colnames(ha07_met)[1]  <- "datetime"
 ha07_met <- ha07_met[, c(21,22,1,3:20)]
 
 # Save the meterological data file
@@ -1117,13 +1117,19 @@ library(imputTS)
 library(anomalize)
 library(tibbletime)
 
+ha_water <- readRDS('./Data/All_HA_Water_Data.rds')
+
 # Anomoly detection, removal, and flagging
 
 # Remove instances where all three sensors are questionable. These are overwhelming instances when the sensors were pulled for servicing/calibration or conducting experiments or collecting samples from the sensor site.
 
 # When the sensors are removed from the water, the data always looks the same, the conductivity is 0.005, the uncorrected conductivity is negative, and the water level is less than zero.
 
-# The dates identified below generally match the service log for the sensors. 
+# The dates identified below generally match the service log for the sensors for when the sensors were removed from the well. I am removing these observation because I am very confident that these are not "real" data.
+sensor_service <- ha_water[(which(ha_water$cond == 0.005 & 
+                             ha_water$ct < 0 & 
+                             ha_water$level_m < 0)),]
+
 ha_water <- ha_water[-(which(ha_water$cond == 0.005 & 
                              ha_water$ct < 0 & 
                              ha_water$level_m < 0)),]
@@ -1164,8 +1170,10 @@ ha_cond[which(ha_cond$ct < 0),]
 # At this point, I need to start the process of breaking up the data, interpolating between missing data sources, and running the anomalize package to ID outliers, then add the data back with the potential outliers removed.
 # Should start with the DO temperature data 
 
-# When the RDO sensor is throwing NaN values, the temperature sensor seems to "freeze" and report the same number over and over or report a zero value. Based on the sensor service log, it appears that most of these prolonged instances occured because there was a kink in the RDO cord that had to be replaced before the sensor would begin report reasonable values again. For this reason, I will remove all data where the DO concentration is NaN.
-ha_do <- ha_do[which(is.finite(ha_do$do_conc) == TRUE),]
+# When the RDO sensor is throwing NaN values, the temperature sensor seems to "freeze" and report the same number over and over or report a zero value. Based on the sensor service log, it appears that most of these prolonged instances occured because there was a kink in the RDO cord that had to be replaced before the sensor would begin reporting reasonable values again. For this reason, I will remove all data where the DO concentration is NaN.
+cable_fault <- ha_do[which(is.finite(ha_do$do_conc) == FALSE),]
+
+ha_do       <- ha_do[which(is.finite(ha_do$do_conc) == TRUE),]
 
 
 # Compile a list where each list item is the data from a unique sensor number
@@ -1173,7 +1181,17 @@ ha_do_list <- split(ha_do, f = as.factor(ha_do$sensor_number))
 
 # Because anomalous zero values are especially problematic for the gap-filling process, I am going to remove them from some of the sensors. I couldn't figure out a process to systematically remove these from sensors where these are anomalous versus part of the typical variation for the sensor.
 
-# Sensors with anomalous zero values (as evaluated based on time series figures from each sensor): 1, 3, 4, 5, 7, 8
+# Sensors with anomalous zero values (as evaluated based on time series figures from each sensor): 1, 4, 5
+anom_zeros <- lapply(ha_do_list, function(x){
+  if(x$sensor_number[1] == '01' | x$sensor_number[1] == '04' | 
+     x$sensor_number[1] == '05'){
+    x <- x[which(x$do_temp <= 0), ]
+  } else {x <- NULL }
+  return(x)
+})
+
+anom_zeros <- rbind(anom_zeros[[1]], anom_zeros[[4]], anom_zeros[[5]])
+
 ha_do_list <- lapply(ha_do_list, function(x){
   if(x$sensor_number[1] == '01' | x$sensor_number[1] == '04' | 
      x$sensor_number[1] == '05'){
@@ -1181,7 +1199,6 @@ ha_do_list <- lapply(ha_do_list, function(x){
   } else {x}
   return(x)
 })
-
 
 # Glitches in sensor DO data are really difficult to distinguish from flood data. I am removing these instances from sensor 9 because they are difficult for this reason. I determined that they are glitches in the RDO sensor based on visually inspecting the temperature data and comparing this to the other sensor data (water level, cond, other temp data) to evaluate for peak matching.
 # Is the temp anomaly data from sensor 9 in 2017 really an outlier or a flood? Answer: Probably bad data, no evidence of flood from this period.
@@ -1216,7 +1233,13 @@ glitch2_end <- as.POSIXct('2017-05-07 11:00')
 #      ha_level$level_m[ha_level$sensor_number=='09'],
 #      xlim = xlims, ylim = c(3.4, 3.6))
 
-# Remove the glitches
+# Store the glitches
+sensor_glitch   <- ha_do_list[[9]][which((ha_do_list[[9]]$datetime >= glitch1_srt &
+                                           ha_do_list[[9]]$datetime <= glitch1_end) |
+                                          (ha_do_list[[9]]$datetime >= glitch2_srt &
+                                           ha_do_list[[9]]$datetime <= glitch2_end)), ]
+
+# Remove the glitches for the anomaly detection process
 ha_do_list[[9]] <- ha_do_list[[9]][-which(ha_do_list[[9]]$datetime >= glitch1_srt &
                                           ha_do_list[[9]]$datetime <= glitch1_end),]
 
@@ -1256,7 +1279,6 @@ gap_fill <- lapply(gap_fill, function(x){
 
 
 # After a lot of trying to tune the alpha parameter, I think the best approach is to use a different alpha level for each well. This is because each well has a unique variability and some wells are more sensitive to influence from flood than others.
-sensor <- c(paste('0',c(1:9),sep = ''), '10')
 alpha  <- c(0.0005, #1
             0.010,  #2
             0.001,  #3
@@ -1316,7 +1338,7 @@ do_temp_anom <- lapply(seq_along(gap_fill), function(i){
 
 y_label   <- "Temp (C)"
 
-png("./Figures/DO_temp_anomaly_well_diff_alphas.png", units = "in", 
+png("./Figures/DO_temp_anomaly_test.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
@@ -1339,6 +1361,61 @@ lapply(do_temp_anom, function(x){
 )
 
 dev.off()
+
+# Recompile the data with flagged anomalies and "bad" data replaced with a missing data value.
+# Data to have a missing value in place of the "bad" data
+#   sensor_service
+#   sensor_glitch
+#   cable_fault
+# Data to be flagged as potentially anomalous
+#   anom_zeros
+#   data flagged as anomalous from the anomalize package process
+sensor_service <- sensor_service[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp')]
+
+bad_data       <- rbind(sensor_service, sensor_glitch, cable_fault)
+
+bad_data$do_conc <- -999
+bad_data$do_temp <- -999
+bad_data$flag    <- NA
+
+anom_zeros$flag  <- 9
+
+# Merge the anomaly data into the into the site data (without the gap filling)
+temp <- lapply(seq(ha_do_list), function(i){
+  # Merge the anomaly data into the site data
+  m <- merge(ha_do_list[[i]], do_temp_anom[[i]][, c('datetime', 'anomaly')], 
+             by = 'datetime')
+  
+  # Create a flag column
+  m$flag[m$anomaly == 'Yes'] <- 9
+  
+  # Return the df without the anomaly column
+  return(m[,c(1:5,7)])
+})
+
+temp <- do.call("rbind", temp)
+
+# Bind all flagged, anomalous zeros, and bad data
+compiled_do_data <- rbind(temp, anom_zeros, bad_data)
+
+# Order the dataframe by sensor number then by datetime
+compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
+
+# How many flagged observations that are potentially anomalous?
+nrow(compiled_do_data[which(compiled_do_data$flag == 9),])
+
+# How many observation are missing due to sensor serivcing, glitches, or other technical issues?
+nrow(compiled_do_data[which(compiled_do_data$do_conc == -999),])
+
+# Write the cleaned data to a csv file
+write.csv(compiled_do_data, './Data/HA_DO_QAQC.csv', row.names = FALSE, quote = FALSE)
+
+
+
+
+
+
+
 
 # Now look at individual sites to see how the anomaly detection is working. Are anomalies flagged? Are variable data due to flooding or other phase shifts falsely IDed as anomalies?
 
