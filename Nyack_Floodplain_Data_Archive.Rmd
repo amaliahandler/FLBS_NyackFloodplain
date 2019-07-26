@@ -1374,7 +1374,7 @@ sensor_service <- sensor_service[, c('site', 'sensor_number', 'datetime', 'do_co
 
 bad_data       <- rbind(sensor_service, sensor_glitch, cable_fault)
 
-bad_data$do_conc <- -999
+# bad_data$do_conc <- -999
 bad_data$do_temp <- -999
 bad_data$flag    <- NA
 
@@ -1408,11 +1408,55 @@ nrow(compiled_do_data[which(compiled_do_data$flag == 9),])
 nrow(compiled_do_data[which(compiled_do_data$do_conc == -999),])
 
 # Write the cleaned data to a csv file
-write.csv(compiled_do_data, './Data/HA_DO_QAQC.csv', row.names = FALSE, quote = FALSE)
+# write.csv(compiled_do_data, './Data/HA_DO_QAQC.csv', row.names = FALSE, quote = FALSE)
 
 
+############################################################################################
+# DO Concentration Data
 
 
+# Visualize the DO concentration data that has been flagged as quenstionable and bad based on the temperature data
+
+# Looks like the temperature bad data and outliers catches most of the bad data and outliers in the DO data. A common exception is anomalous zero DO data values.
+do_vis <- split(compiled_do_data, f = as.factor(compiled_do_data$sensor_number))
+
+
+y_label   <- "DO Conc (mg/L)"
+
+png("./Figures/DO_conc_wo_anomalies.png", units = "in", 
+    width = 12, height = 12, res = 200, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(do_vis, function(x){
+  # All the do concentration data
+  plot(x$datetime, x$do_conc, 
+       xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+
+  # Highlight flagged data
+  points(x$datetime[which(x$flag == 9)],
+         x$do_conc[which(x$flag == 9)],
+         pch = 1, cex.pch = 2, col = 'red')
+  
+  # Highlight data IDed as bad from the temperature data
+  points(x$datetime[which(x$do_temp == -999)],
+         x$do_conc[which(x$do_temp == -999)],
+         pch = 1, cex.pch = 2, col = 'blue')
+    
+  title(paste(x[1,2], x[1,3], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+
+  }
+)
+
+dev.off()
+
+x <- do_vis[[1]]
+plot(x$datetime, x$do_conc, xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
+points(x$datetime[which(x$flag == 9)], x$do_conc[which(x$flag == 9)], pch = 1, col = 'red')
+points(x$datetime[which(x$do_temp == -999)], x$do_conc[which(x$do_temp == -999)], 
+       pch = 1, col = 'blue')
 
 
 
