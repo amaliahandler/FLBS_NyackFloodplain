@@ -1109,11 +1109,11 @@ anom_do_temp_stn %>%
 ```
 
 
-Okay, try and impliment so kind of automated outlier detection
+Okay, try and implement some kind of automated outlier detection
 
 ```{r}
 library(tidyverse)
-library(imputTS)
+library(imputeTS)
 library(anomalize)
 library(tibbletime)
 
@@ -1190,7 +1190,7 @@ anom_zeros <- lapply(ha_do_list, function(x){
   return(x)
 })
 
-anom_zeros <- rbind(anom_zeros[[1]], anom_zeros[[4]], anom_zeros[[5]])
+anom_zeros_temp <- rbind(anom_zeros[[1]], anom_zeros[[4]], anom_zeros[[5]])
 
 ha_do_list <- lapply(ha_do_list, function(x){
   if(x$sensor_number[1] == '01' | x$sensor_number[1] == '04' | 
@@ -1374,7 +1374,7 @@ sensor_service <- sensor_service[, c('site', 'sensor_number', 'datetime', 'do_co
 
 bad_data       <- rbind(sensor_service, sensor_glitch, cable_fault)
 
-# bad_data$do_conc <- -999
+bad_data$do_conc <- -999
 bad_data$do_temp <- -999
 bad_data$flag    <- NA
 
@@ -1387,7 +1387,7 @@ temp <- lapply(seq(ha_do_list), function(i){
              by = 'datetime')
   
   # Create a flag column
-  m$flag[m$anomaly == 'Yes'] <- 9
+  m$do_temp_flag[m$anomaly == 'Yes'] <- 9
   
   # Return the df without the anomaly column
   return(m[,c(1:5,7)])
@@ -1411,14 +1411,14 @@ nrow(compiled_do_data[which(compiled_do_data$do_conc == -999),])
 # write.csv(compiled_do_data, './Data/HA_DO_QAQC.csv', row.names = FALSE, quote = FALSE)
 
 
-############################################################################################
+######################################################################
 # DO Concentration Data
 
 
 # Visualize the DO concentration data that has been flagged as quenstionable and bad based on the temperature data
 
 # Looks like the temperature bad data and outliers catches most of the bad data and outliers in the DO data. A common exception is anomalous zero DO data values.
-do_vis <- split(compiled_do_data, f = as.factor(compiled_do_data$sensor_number))
+do_v1 <- split(compiled_do_data, f = as.factor(compiled_do_data$sensor_number))
 
 
 y_label   <- "DO Conc (mg/L)"
@@ -1428,7 +1428,7 @@ png("./Figures/DO_conc_wo_bad_data.png", units = "in",
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
 
-lapply(do_vis, function(x){
+lapply(do_v1, function(x){
   plot(x$datetime[-which(x$do_temp == -999)], 
        x$do_conc[-which(x$do_temp == -999)], 
        xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
@@ -1446,22 +1446,314 @@ dev.off()
 
 # Look at the spikes in the DO data from station 1 2014-2015. On close inspection, these are all fine.
 xlims <- as.POSIXct(c('2014-01-01 00:00', '2015-06-01 00:00'))
-plot(do_vis[[1]]$datetime, do_vis[[1]]$do_conc, pch = 20, xlim = xlims)
+plot(do_v1[[1]]$datetime, do_v1[[1]]$do_conc, pch = 20, xlim = xlims)
 
 xlims <- as.POSIXct(c('2014-04-09 00:00', '2014-04-11 00:00'))
 ylims <- c(4, 12)
-plot(do_vis[[1]]$datetime, do_vis[[1]]$do_conc, pch = 20, xlim = xlims, ylim = ylims)
+plot(do_v1[[1]]$datetime, do_v1[[1]]$do_conc, pch = 20, xlim = xlims, ylim = ylims)
 
 xlims <- as.POSIXct(c('2014-09-13 00:00', '2014-09-17 00:00'))
 ylims <- c(3.5, 11)
-plot(do_vis[[1]]$datetime, do_vis[[1]]$do_conc, pch = 20, xlim = xlims, ylim = ylims)
+plot(do_v1[[1]]$datetime, do_v1[[1]]$do_conc, pch = 20, xlim = xlims, ylim = ylims)
 
-plot(do_vis[[1]]$datetime[-which(do_vis[[1]]$do_temp == -999)], 
-     do_vis[[1]]$do_temp[-which(do_vis[[1]]$do_temp == -999)], 
+plot(do_v1[[1]]$datetime[-which(do_v1[[1]]$do_temp == -999)], 
+     do_v1[[1]]$do_temp[-which(do_v1[[1]]$do_temp == -999)], 
      pch = 20, xlim = xlims, ylim = c(7,11))
 
-# Likely need to flag CASC data from winter 2015-2016, may have represented silt accumulation in the well
+xlims <- as.POSIXct(c('2014-11-24 00:00', '2014-12-1 00:00'))
+ylims <- c(4, 11)
+plot(do_v1[[1]]$datetime, do_v1[[1]]$do_conc, pch = 20, xlim = xlims, ylim = ylims)
 
+ylims <- c(6.5,7.5)
+plot(do_v1[[1]]$datetime, do_v1[[1]]$do_temp, pch = 20, xlim = xlims, ylim = ylims)
+
+plot(ha_level$datetime[ha_level$sensor_number=='01'],
+     ha_level$level_m[ha_level$sensor_number=='01'], 
+     xlim = xlims, ylim = c(2.3,2.6))
+
+
+# Likely need to flag CASC data from winter 2015-2016, may have represented silt accumulation in the well
+xlims <- as.POSIXct(c('2015-11-01 00:00', '2016-05-01 00:00'))
+plot(do_v1[[6]]$datetime, do_v1[[6]]$do_conc, pch = 20, xlim = xlims)
+
+# Look at sensor 9 near zero DO value in late 2012. Conclusion, likely an anomaly. Should remove because there are a lot of data gaps during thi period 
+xlims <- as.POSIXct(c('2012-11-01 00:00', '2012-11-25 00:00'))
+ylims <- c(-2, 13)
+plot(do_v1[[9]]$datetime, do_v1[[9]]$do_conc, pch = 20, xlim = xlims)
+
+
+# Need to remove the anomalous zero values at sensor 1, 3, 4 (prior to 2016), 5 (in early 2015), 6 (prior to 2016-06), 7, and 9. Identified these based on visual inspection of the site figures. These will mess with the anomaly detection process because the gap filling process makes these values appear as part of the trend.
+
+# Specifiy the period that the zeros to be removed.
+zero_windows <- data.frame(sensor = c('01','03','04','05','06','07','09'),
+                           start = as.Date(c(NA, NA, 
+                                             '2015-01-01',
+                                             '2015-01-01',
+                                             '2013-01-01', NA, NA)),
+                           end = as.Date(c(NA, NA,
+                                           '2015-12-31',
+                                           '2015-06-01',
+                                           '2015-06-01', NA, NA)))
+                           
+# Save the anomalous zero data, but remove these row for the gap filling process.
+anom_zeros <- lapply(do_v1, function(x){
+  sn <- x$sensor_number[1]
+  if(sn %in% zero_windows$sensor){
+    if(is.na(zero_windows[match(sn, zero_windows$sensor), 'start'])){
+      x <- x[which(x$do_conc <= 0), ]
+    } else {
+      s <- zero_windows[match(sn, zero_windows$sensor), 'start']
+      e <- zero_windows[match(sn, zero_windows$sensor), 'end']
+      x <- x[which(x$do_conc <= 0 & x$datetime >= s & x$datetime <= e), ]
+    }
+    
+  } else {x <- NULL }
+  
+  return(x)
+})
+
+anom_zeros_conc <- rbind(anom_zeros[[1]], anom_zeros[[3]], anom_zeros[[4]],
+                         anom_zeros[[5]], anom_zeros[[6]], anom_zeros[[7]],
+                         anom_zeros[[9]])
+
+# Process to remove anomalous zero data prior to gap filling.
+do_v2 <- lapply(do_v1, function(x){
+  sn <- x$sensor_number[1]
+  if(sn %in% zero_windows$sensor){
+    if(is.na(zero_windows[match(sn, zero_windows$sensor), 'start'])){
+      x <- x[-which(x$do_conc <= 0), ]
+    } else {
+      s <- zero_windows[match(sn, zero_windows$sensor), 'start']
+      e <- zero_windows[match(sn, zero_windows$sensor), 'end']
+      x <- x[-which(x$do_conc <= 0 & x$datetime >= s & x$datetime <= e), ]
+    }
+    
+  } else {x}
+  
+  return(x)
+})
+
+
+# Gap filling
+# Create a new list that has a row for every datetime between the first observation and last observation for each site. 
+gap_fill <- lapply(do_v2, function(x){
+  time_vec  <- seq(from = min(na.omit(x$datetime)), 
+                   to = max(na.omit(x$datetime)), by = "1 hour")
+  all_times <- data.frame(datetime = time_vec)
+  return(all_times)
+})
+
+# Merge the do_temp data into the above list
+gap_fill <- lapply(seq(gap_fill), function(i){
+  merge(gap_fill[[i]], do_v2[[i]], by = "datetime", all.x = TRUE)
+})
+
+# Interpolate the missing temperature data, add a column to indicate whether the data are interpolated (helpful for plotting purposes)
+gap_fill <- lapply(gap_fill, function(x){
+  # Interpolate data
+  x$do_conc_interp <- na_interpolation(x$do_conc, option = "linear")
+  
+  # Column to identify interpolated values
+  x$interp <- 'no'
+  x$interp[is.na(x$do_conc)] <- 'yes'
+  
+  # Return the whole list
+  return(x)
+})
+
+# Convert the df to a tibble time object (required for the anomalize package).
+gap_fill <- lapply(gap_fill, function(x){
+  as_tbl_time(x, datetime)
+})
+
+
+# After a lot of trying to tune the alpha parameter, I think the best approach is to use a different alpha level for each well. This is because each well has a unique variability and some wells are more sensitive to influence from flood than others.
+# Alpha to get started
+alpha <- c(0.0003, #1 good
+           0.0008, #2
+           0.0015, #3 good
+           0.003,  #4 good
+           0.003,  #5 good as it will get
+           0.001,  #6
+           0.002,  #7 was 0.003 (too high), 0.002 (too low)
+           0.001,  #8
+           0.002,  #9 was 0.002 (too low)
+           0.005)  #10
+
+# Anomaly identification
+# Run the anomaly detection process
+anom_do_conc <- lapply(seq_along(gap_fill), function(i){
+  gap_fill[[i]] %>%  
+    time_decompose(do_conc_interp, 
+                   method = "stl",
+                   frequency = "24 hours",
+                   trend = "2 weeks") %>%
+    anomalize(remainder, 
+              method = "iqr", 
+              alpha = alpha[i]) %>%
+    time_recompose()
+})
+
+# Merge the anomaly data into the gap_fill df
+do_conc_anom <- lapply(seq_along(gap_fill), function(i){
+  gap_fill[[i]]$anomaly <- anom_do_conc[[i]]$anomaly
+  return(gap_fill[[i]])
+}) 
+
+# Visualize the results
+
+# Notes about the interative process of finding something that works
+
+# Need to tune the alpha value for each sensor
+
+y_label   <- "DO Conc (mg/L)"
+
+png("./Figures/DO_conc_anom_varied_alpha_V4.png", units = "in", 
+    width = 18, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(do_conc_anom, function(x){
+  # Plot raw data, without the interpolated data
+  plot(x$datetime[x$interp == 'no'], x$do_conc[x$interp == 'no'], 
+       xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+
+  # Highlight detected anomalies in raw data (not including interpolated data)
+  points(x$datetime[x$anomaly == 'Yes' & x$interp == 'no'],
+         x$do_conc[x$anomaly == 'Yes' & x$interp == 'no'],
+         pch = 1, cex.pch = 2, col = 'red')
+    
+  title(paste(x[1,2], x[1,3], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+
+  }
+)
+
+dev.off()
+
+
+# Figure with the interpolated data
+
+png("./Figures/DO_conc_anom_w_interp.png", units = "in", 
+    width = 18, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+x <- do_conc_anom[[1]]
+
+lapply(do_conc_anom, function(x){
+  # Plot raw data, without the interpolated data
+  plot(x$datetime[x$interp == 'no'], x$do_conc[x$interp == 'no'], 
+       xlab = " ", ylab = y_label, cex.axis = 2, pch = 20)
+
+  # Plot interpolated data
+  points(x$datetime[which(x$interp == 'yes')],
+         x$do_conc_interp[which(x$interp == 'yes')],
+         pch = '.', cex = 2, col = 'blue')
+  
+  # Highlight detected anomalies in raw data (not including interpolated data)
+  points(x$datetime[x$anomaly == 'Yes'],
+         x$do_conc[x$anomaly == 'Yes'],
+         pch = 1, col = 'red')
+    
+  title(paste(x[1,2], x[1,3], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+
+  }
+)
+
+dev.off()
+
+
+# Recompile the data with flagged anomalies and "bad" data replaced with a missing data value.
+# Data to have a missing value in place of the "bad" data
+#   sensor_service
+#   sensor_glitch
+#   cable_fault
+# Data to be flagged as potentially anomalous
+#   anom_zeros (temp and conc)
+#   data flagged as anomalous from the anomalize package process
+#   data from Casc that was collected while there was silt in the well
+sensor_service <- sensor_service[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp')]
+
+bad_data       <- rbind(sensor_service, sensor_glitch, cable_fault)
+
+bad_data$do_conc <- -999
+bad_data$do_temp <- -999
+bad_data$flag    <- NA
+
+anom_zeros_temp$do_temp_flag  <- 9
+anom_zeros_temp$do_conc_flag  <- NA
+anom_zeros_conc$do_temp_flag  <- NA
+anom_zeros_conc$do_conc_flag  <- 9 
+
+i<-1
+
+# Merge the anomaly data into the into the site data (without the gap filling)
+temp <- lapply(seq(ha_do_list), function(i){
+  # Merge the temperature anomaly data into the site data
+  m <- merge(ha_do_list[[i]], do_temp_anom[[i]][, c('datetime', 'anomaly')], 
+             by = 'datetime')
+  
+  # Merge the DO concentration anomaly data into the site data
+  m <- merge(m, do_conc_anom[[i]][, c('datetime', 'anomaly')], 
+             by = 'datetime')
+  
+  # Create a flag column
+  m$do_temp_flag[m$anomaly.x == 'Yes'] <- 9
+  m$do_conc_flag[m$anomaly.y == 'Yes'] <- 9
+  
+  # Return the df without the anomaly column
+  return(m[,c(1:5,8,9)])
+})
+
+temp <- do.call("rbind", temp)
+
+# Bind all flagged, anomalous zeros, and bad data
+compiled_do_data <- rbind(temp, anom_zeros, bad_data)
+
+# Order the dataframe by sensor number then by datetime
+compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
+
+# How many flagged observations that are potentially anomalous?
+nrow(compiled_do_data[which(compiled_do_data$flag == 9),])
+
+# How many observation are missing due to sensor serivcing, glitches, or other technical issues?
+nrow(compiled_do_data[which(compiled_do_data$do_conc == -999),])
+
+# Write the cleaned data to a csv file
+# write.csv(compiled_do_data, './Data/HA_DO_QAQC.csv', row.names = FALSE, quote = FALSE)
+
+
+# Look at surface water sites for DO concentration to see how the anomaly detection is appropriate given the higher variation
+xlims <- as.POSIXct(c('2015-11-15 00:00', '2016-04-12 23:00'))
+ylims <- c(0, 14)
+
+anom_do_conc[[6]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+xlims <- as.POSIXct(c('2016-04-04 21:00', '2016-04-15 23:00'))
+ylims <- c(0, 12.5)
+
+anom_do_conc[[6]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+xlims <- as.POSIXct(c('2016-11-09 21:00', '2016-11-10 20:00'))
+ylims <- c(11, 12.5)
+
+anom_do_conc[[6]] %>%
+  plot_anomalies(time_recomposed = TRUE) +
+  scale_y_continuous(limits = ylims) + 
+  scale_x_datetime(limits = xlims)
+
+# CASC silty stilling well flag
+# Everything from 2016-11-10 21:00 to 2016-04-04 20:00 is likely the result of a silty stilling well
 
 # Now look at individual sites to see how the anomaly detection is working. Are anomalies flagged? Are variable data due to flooding or other phase shifts falsely IDed as anomalies?
 
