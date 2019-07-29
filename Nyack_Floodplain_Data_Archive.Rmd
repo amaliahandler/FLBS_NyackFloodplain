@@ -1362,53 +1362,10 @@ lapply(do_temp_anom, function(x){
 
 dev.off()
 
-# Recompile the data with flagged anomalies and "bad" data replaced with a missing data value.
-# Data to have a missing value in place of the "bad" data
-#   sensor_service
-#   sensor_glitch
-#   cable_fault
-# Data to be flagged as potentially anomalous
-#   anom_zeros
-#   data flagged as anomalous from the anomalize package process
-sensor_service <- sensor_service[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp')]
 
-bad_data       <- rbind(sensor_service, sensor_glitch, cable_fault)
 
-bad_data$do_conc <- -999
-bad_data$do_temp <- -999
-bad_data$flag    <- NA
 
-anom_zeros$flag  <- 9
 
-# Merge the anomaly data into the into the site data (without the gap filling)
-temp <- lapply(seq(ha_do_list), function(i){
-  # Merge the anomaly data into the site data
-  m <- merge(ha_do_list[[i]], do_temp_anom[[i]][, c('datetime', 'anomaly')], 
-             by = 'datetime')
-  
-  # Create a flag column
-  m$do_temp_flag[m$anomaly == 'Yes'] <- 9
-  
-  # Return the df without the anomaly column
-  return(m[,c(1:5,7)])
-})
-
-temp <- do.call("rbind", temp)
-
-# Bind all flagged, anomalous zeros, and bad data
-compiled_do_data <- rbind(temp, anom_zeros, bad_data)
-
-# Order the dataframe by sensor number then by datetime
-compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
-
-# How many flagged observations that are potentially anomalous?
-nrow(compiled_do_data[which(compiled_do_data$flag == 9),])
-
-# How many observation are missing due to sensor serivcing, glitches, or other technical issues?
-nrow(compiled_do_data[which(compiled_do_data$do_conc == -999),])
-
-# Write the cleaned data to a csv file
-# write.csv(compiled_do_data, './Data/HA_DO_QAQC.csv', row.names = FALSE, quote = FALSE)
 
 
 ######################################################################
@@ -1496,7 +1453,7 @@ zero_windows <- data.frame(sensor = c('01','03','04','05','06','07','09'),
                                            '2015-06-01', NA, NA)))
                            
 # Save the anomalous zero data, but remove these row for the gap filling process.
-anom_zeros <- lapply(do_v1, function(x){
+anom_zeros <- lapply(ha_do_list, function(x){
   sn <- x$sensor_number[1]
   if(sn %in% zero_windows$sensor){
     if(is.na(zero_windows[match(sn, zero_windows$sensor), 'start'])){
@@ -1517,7 +1474,7 @@ anom_zeros_conc <- rbind(anom_zeros[[1]], anom_zeros[[3]], anom_zeros[[4]],
                          anom_zeros[[9]])
 
 # Process to remove anomalous zero data prior to gap filling.
-do_v2 <- lapply(do_v1, function(x){
+do_v2 <- lapply(ha_do_list, function(x){
   sn <- x$sensor_number[1]
   if(sn %in% zero_windows$sensor){
     if(is.na(zero_windows[match(sn, zero_windows$sensor), 'start'])){
@@ -1680,16 +1637,19 @@ sensor_service <- sensor_service[, c('site', 'sensor_number', 'datetime', 'do_co
 
 bad_data       <- rbind(sensor_service, sensor_glitch, cable_fault)
 
-bad_data$do_conc <- -999
-bad_data$do_temp <- -999
-bad_data$flag    <- NA
+bad_data$do_conc      <- -999
+bad_data$do_temp      <- -999
+bad_data$do_conc_flag <- NA
+bad_data$do_temp_flag <- NA
 
+# Bind together the anomalous zero values
 anom_zeros_temp$do_temp_flag  <- 9
+anom_zeros_conc$do_conc_flag  <- 9
+
 anom_zeros_temp$do_conc_flag  <- NA
 anom_zeros_conc$do_temp_flag  <- NA
-anom_zeros_conc$do_conc_flag  <- 9 
 
-i<-1
+anom_zeros <- rbind(anom_zeros_temp, anom_zeros_conc)
 
 # Merge the anomaly data into the into the site data (without the gap filling)
 temp <- lapply(seq(ha_do_list), function(i){
@@ -1702,8 +1662,8 @@ temp <- lapply(seq(ha_do_list), function(i){
              by = 'datetime')
   
   # Create a flag column
-  m$do_temp_flag[m$anomaly.x == 'Yes'] <- 9
-  m$do_conc_flag[m$anomaly.y == 'Yes'] <- 9
+  m$do_temp_flag[m$anomaly.x == 'Yes'] <- 1
+  m$do_conc_flag[m$anomaly.y == 'Yes'] <- 1
   
   # Return the df without the anomaly column
   return(m[,c(1:5,8,9)])
@@ -1714,11 +1674,25 @@ temp <- do.call("rbind", temp)
 # Bind all flagged, anomalous zeros, and bad data
 compiled_do_data <- rbind(temp, anom_zeros, bad_data)
 
+# Mark the period when CASC had a stilling well full of silt
+# Everything from 2015-11-10 21:00 to 2016-04-04 20:00 is likely the result of a silty stilling well
+s <- as.POSIXct('2015-11-10 21:00')
+e <- as.POSIXct('2016-04-04 20:00')
+
+compiled_do_data$do_temp_flag[which(compiled_do_data$sensor_number == '06' &
+                                    compiled_do_data$datetime >= s &
+                                    compiled_do_data$datetime <= e)] <- 2
+
+
 # Order the dataframe by sensor number then by datetime
 compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
 
+
+
 # How many flagged observations that are potentially anomalous?
-nrow(compiled_do_data[which(compiled_do_data$flag == 9),])
+nrow(compiled_do_data[which(compiled_do_data$do_temp_flag == 9 |
+                            compiled_do_data$do_conc_flag == 9 |
+                            compiled_do_data$do_conc_flag == 2),])
 
 # How many observation are missing due to sensor serivcing, glitches, or other technical issues?
 nrow(compiled_do_data[which(compiled_do_data$do_conc == -999),])
