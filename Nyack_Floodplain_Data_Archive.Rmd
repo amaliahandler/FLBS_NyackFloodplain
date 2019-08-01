@@ -2005,7 +2005,7 @@ ha_cond  <- ha_water[, c('site', 'sensor_number', 'datetime', 'cond', 'cond_temp
 nrow(ha_cond[which(ha_cond$ct < 0), ])
 nrow(ha_cond[which(ha_cond$cond == 0.005), ])
 
-# Most of the bad conductivity data comes from HA02, sensor 09, between 2019-07-20 and 2016-08-25. From the sensor log, it appears that it was serviced on 07-20, then on 08-25 it was serviced again and noted that the conductivity probe was out of the water apparently hung up. 
+# Most of the bad conductivity data comes from HA02, sensor 09, between 2016-07-20 and 2016-08-25. From the sensor log, it appears that it was serviced on 07-20, then on 08-25 it was serviced again and noted that the conductivity probe was out of the water apparently hung up. 
 nrow(ha_cond[which(ha_cond$ct < 0 & ha_cond$sensor_number == "09"), ])
 nrow(ha_cond[which(ha_cond$cond == 0.005 & ha_cond$sensor_number == "09"), ])
 
@@ -2017,6 +2017,23 @@ s09_bad_data <- ha_cond[which(ha_cond$ct < 0 & ha_cond$sensor_number == "09" &
 ha_cond <- ha_cond[-which(ha_cond$ct < 0 & ha_cond$sensor_number == "09" &
                           ha_cond$datetime >= as.POSIXct('2016-07-20 00:00') &
                           ha_cond$datetime <= as.POSIXct('2016-08-25 23:00')), ]
+
+# Remove the big conductivity spike in sensor 2 in early 2018
+xlims <- as.POSIXct(c('2018-02-13 12:00', '2018-02-17 18:00'))
+plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
+     ha_cond$cond[ha_cond$sensor_number == '02'], xlim = xlims)
+
+xlims <- as.POSIXct(c('2018-02-13 09:00', '2018-02-17 21:00'))
+plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
+     ha_cond$cond[ha_cond$sensor_number == '02'], xlim = xlims, ylim = c(0.2,.6))
+
+s02_glitch <- ha_cond[which(ha_cond$sensor_number == "02" &
+                          ha_cond$datetime >= xlims[1] &
+                          ha_cond$datetime <= xlims[2]),]
+
+ha_cond <- ha_cond[-which(ha_cond$sensor_number == "02" &
+                          ha_cond$datetime >= xlims[1] &
+                          ha_cond$datetime <= xlims[2]),]
 
 # It appears that the lowest reading from the conductivity meter is 0.005 mS. This seems to be the equivelent to the sensor throwing a erroneous zero value.
 zero_cond <- ha_cond[which(ha_cond$cond == 0.005),]
@@ -2158,126 +2175,54 @@ lapply(ha_cond_list, function(x){
 dev.off()
 
 
-# Glitch in sensor 02 in early 2018. Seem like someone put something in the well.
-xlims <- as.POSIXct(c('2018-02-13 00:00', '2018-02-17 23:00'))
+# # Glitch in sensor 02 in early 2018. Seem like someone put something in the well.
+# xlims <- as.POSIXct(c('2018-02-13 00:00', '2018-02-17 23:00'))
+# 
+# plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
+#      ha_cond$cond[ha_cond$sensor_number == '02'], xlim = xlims)
+# 
+# plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
+#      ha_cond$cond_temp[ha_cond$sensor_number == '02'], xlim = xlims)
+# 
+# plot(ha_water$datetime[ha_water$sensor_number == '02'],
+#      ha_water$level_m[ha_water$sensor_number == '02'], xlim = xlims, ylim = c(0.35, 0.5))
+# 
+# # Find exact time period
+# xlims <- as.POSIXct(c('2018-02-13 15:00', '2018-02-17 15:00'))
+# 
+# plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
+#      ha_cond$cond[ha_cond$sensor_number == '02'], xlim = xlims)
+# 
+# # Remove the data
+# cond_glitch <- ha_cond[which(ha_cond$sensor_number == '02' &
+#                          ha_cond$datetime >= xlims[1] &
+#                          ha_cond$datetime <= xlims[2]),]
+# 
+# ha_cond_list[[2]] <- ha_cond_list[[2]][-which(ha_cond_list[[2]]$datetime >= xlims[1] &
+#                                     ha_cond_list[[2]]$datetime <= xlims[2]),]
 
-plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
-     ha_cond$cond[ha_cond$sensor_number == '02'], xlim = xlims)
 
-plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
-     ha_cond$cond_temp[ha_cond$sensor_number == '02'], xlim = xlims)
+# Glitch in sensor 08 in early 2013. Have in the sensor log that the sensors were stuck in ice and were freed with a shovel and ice melt
+xlims <- as.POSIXct(c('2013-01-25 00:00', '2013-01-27 23:00'))
+
+plot(ha_cond$datetime[ha_cond$sensor_number == '08'],
+     ha_cond$cond[ha_cond$sensor_number == '08'], xlim = xlims)
+
+plot(ha_cond$datetime[ha_cond$sensor_number == '08'],
+     ha_cond$cond_temp[ha_cond$sensor_number == '08'], xlim = xlims)
 
 plot(ha_water$datetime[ha_water$sensor_number == '02'],
      ha_water$level_m[ha_water$sensor_number == '02'], xlim = xlims, ylim = c(0.35, 0.5))
 
-# Find exact time period
-xlims <- as.POSIXct(c('2018-02-13 15:00', '2018-02-17 15:00'))
+xlims <- as.POSIXct(c('2013-01-25 12:00', '2013-01-26 12:00'))
 
-plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
-     ha_cond$cond[ha_cond$sensor_number == '02'], xlim = xlims)
+s08_glitch <- ha_cond[which(ha_cond$sensor_number == '08' &
+                        ha_cond$datetime >= xlims[1] &
+                        ha_cond$datetime <= xlims[2]),] 
 
-# Remove the data
-cond_glitch <- ha_cond[which(ha_cond$sensor_number == '02' &
-                         ha_cond$datetime >= xlims[1] &
-                         ha_cond$datetime <= xlims[2]),]
+ha_cond_list[[8]] <- ha_cond_list[[8]][-which(ha_cond_list[[8]]$datetime >= xlims[1] &                                                      ha_cond_list[[8]]$datetime <= xlims[2]),]
 
-ha_cond_list[[2]] <- ha_cond_list[[2]][-which(ha_cond_list[[2]]$datetime >= xlims[1] &
-                                    ha_cond_list[[2]]$datetime <= xlims[2]),]
 
-# There are a number of anomalously low conductivity values. They are difficult to distinguish from the floods. 
-# Can I ID these by differencing the dataset?
-
-x<-ha_cond_list[[1]]
-
-anom <- lapply(ha_cond_list, function(x){
-  # Calculate the difference between observations
-  diff <- abs(x$cond[-1] - x$cond[1:(nrow(x)-1)])
-  
-  # Find the percentile of observations that can be anomalous
-  quan   <- 1 - num_anoms/nrow(x)
-  
-  # Form a cutoff based on this values
-  cutoff <- as.numeric(quantile(diff, quan))
-  
-  # Based on the cutoff, detemine if the difference is anomalous
-  anom <- NA
-  for(i in 1:length(diff)){
-    if(diff[i] >= cutoff){
-      anom[i] <- 'yes' 
-    } else {anom[i] <- 'no'}
-  }
-  return(anom)
-})
-
-# Merge the vector into the cond list
-test <- lapply(seq_along(ha_cond_list), function(i){
-  ha_cond_list[[i]]$anomaly <- NA
-  ha_cond_list[[i]]$anomaly[1:length(anom[[i]])] <- anom[[i]]
-  return(ha_cond_list[[i]])
-})
-
-# Visualize the flagged observations
-y_label   <- "Cond (mS)"
-
-png("./Figures/Cond Figures/Cond_val_diff_flag.png", units = "in", 
-    width = 12, height = 12, res = 300, bg = "transparent")
-
-par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(test, function(x){
-  # Plot raw data, without the interpolated data
-  plot(x$datetime, x$cond, xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
-
-  # Highlight flagged differences
-  points(x$datetime[x$anomaly == 'yes'], x$cond[x$anomaly == 'yes'],pch = 1, col = 'red')
-    
-  title(paste(x[1,2], x[1,3], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  box(lwd = 2)
-
-  }
-)
-
-dev.off()
-
-# Number of observations to be flagged
-num_anoms <- 65
-
-# Find the percentile of observation that can be anomalous
-cutoff <- lapply(seq_along(ha_cond_list), function(i){
-  quan   <- 1 - num_anoms/nrow(ha_cond_list[[i]])
-  cutoff <- as.numeric(quantile(differ[[i]], quan))
-  return(cutoff)
-})
-
-# Flag all differences higher than the cutoff
-flag <- NULL
-
-lapply(seq_along(differ), function(i){
-  for(n in 1:nrow(differ[[i]])){
-    if(differ[[i]][n] >= cutoff[[i]]){
-      flag[[i]][n] <- 'yes'
-    } else {flag[[i]][n] <- 'no'}
-  }
-})
-
-flag <- list(length = 10)
-
-flagged <- lapply(seq_along(differ), function(i){
-  for(element in 1:length(differ[[i]])){
-      if(differ[[i]][element] >= cutoff[[i]]){
-        flag[[i]][element] <- 'yes'
-      } else {flag[[i]][element] <- 'no'}
-  }
-  return(flag)
-})
-
-flagged <- lapply(seq_along(differ), function(i){
-        if(differ[[i]] >= cutoff[[i]]){
-        flag[[i]] <- 'yes'
-      } else {flag[[i]] <- 'no'}
-  return(flag[[i]])
-})
 
 # Gap filling
 # Create a new list that has a row for every datetime between the first observation and last observation for each site. 
@@ -2422,6 +2367,77 @@ plot(temp$datetime, temp$level_m, pch = 20, ylab = "Level (m)", xlab = ' ')
 Filed under: Things I tried and didn't work out.
 
 ```{r}
+
+# Differencing the data to ID outliers: No go. Flagged a lot of obsevations in the midst of the data. Problematic for floods and flagging observations following data gaps
+# There are a number of anomalously low conductivity values. They are difficult to distinguish from the floods. 
+# Can I ID these by differencing the dataset?
+
+# Number of observations to be flagged
+num_anoms <- 30
+
+x <- ha_cond_list[[1]]
+
+anom <- lapply(ha_cond_list, function(x){
+  # Calculate the difference between observations
+  diff2 <- abs(x$cond[-1] - x$cond[1:(nrow(x)-1)])
+  
+  # Find the percentile of observations that can be anomalous
+  quan   <- 1 - num_anoms/nrow(x)
+  
+  # Form a cutoff based on this values
+  cutoff <- as.numeric(quantile(diff, quan))
+  # cutoff <- 0.01
+  
+  # Based on the cutoff, detemine if the difference is anomalous
+  anom <- NA
+  for(i in 1:length(diff)){
+    if(diff[i] >= cutoff){
+      anom[i] <- 'yes' 
+    } else {anom[i] <- 'no'}
+  }
+  return(anom)
+})
+
+# Merge the vector into the cond list
+test <- lapply(seq_along(ha_cond_list), function(i){
+  # Initialize columns
+  ha_cond_list[[i]]$anom1 <- NA
+  ha_cond_list[[i]]$anom2 <- NA
+  ha_cond_list[[i]]$anomaly <- NA
+  
+  # Populate with cutoff info
+  ha_cond_list[[i]]$anom1[1:length(anom[[i]])] <- anom[[i]]
+  ha_cond_list[[i]]$anom2[-1]                  <- anom[[i]]
+  
+  # If both are anomalies, then likely anomaly
+  ha_cond_list[[i]]$anomaly[ha_cond_list[[i]]$anom1 == 'yes' & ha_cond_list[[i]]$anom2 == 'yes'] <- 'yes'
+  return(ha_cond_list[[i]])
+})
+
+# Visualize the flagged observations
+y_label   <- "Cond (mS)"
+
+png("./Figures/Cond Figures/Cond_val_diff_maxanom30.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(test, function(x){
+  # Plot raw data, without the interpolated data
+  plot(x$datetime, x$cond, xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
+
+  # Highlight flagged differences
+  points(x$datetime[x$anomaly == 'yes'], x$cond[x$anomaly == 'yes'],pch = 1, col = 'red')
+    
+  title(paste(x[1,2], x[1,3], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+
+  }
+)
+
+dev.off()
+
 
 # Based on a first pass of the analysis, it appears that the outlier zeros in the data at some (mostly groundwater) sensors are particularly problematic because the often occur following or proceeding a gap in observations. As a result, the gap filling process is making these outlier appear consisten with the larger trend. I will revise the analysis above to remove these zero temp outliers.
 
