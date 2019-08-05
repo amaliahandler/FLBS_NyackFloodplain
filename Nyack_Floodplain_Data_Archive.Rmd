@@ -1143,12 +1143,12 @@ plot(ha_water$datetime[ha_water$sensor_number == '01'],
 plot(ha_water$datetime[ha_water$sensor_number == '01'],
      ha_water$do_temp[ha_water$sensor_number == '01'], xlim = xlims)
 
-# Glitch that needs to be removed
+# Glitch that needs to be removed from sensor 01. The data just jumps randomly, then suddenly returns to normal.
 xlims <- as.POSIXct(c('2014-06-27 15:00', '2014-06-28 15:00'))
 plot(ha_water$datetime[ha_water$sensor_number == '01'],
      ha_water$do_temp[ha_water$sensor_number == '01'], xlim = xlims)
 
-sensor_glitch <- ha_water[which(ha_water$sensor_number == '01' &
+s01_glitch <- ha_water[which(ha_water$sensor_number == '01' &
                                   ha_water$datetime >= xlims[1] &
                                   ha_water$datetime <= xlims[2]),]
 
@@ -1156,14 +1156,33 @@ ha_water <- ha_water[-which(ha_water$sensor_number == '01' &
                                   ha_water$datetime >= xlims[1] &
                                   ha_water$datetime <= xlims[2]),]
 
-# Remove impossible numbers
+# Remove the period when CASC had a stilling well full of silt
+# Everything from 2015-11-10 21:00 to 2016-04-04 20:00 is likely the result of a silty stilling well
+s <- as.POSIXct('2015-11-10 21:00')
+e <- as.POSIXct('2016-04-04 20:00')
 
-# DO concentration cannot be negative
-# Over 8% of DO concentration observations are negative?!
-nrow(ha_water[which(ha_water$do_conc < 0), ])
+casc_silt <- ha_water[which(ha_water$sensor_number == '06' &
+                            ha_water$datetime >= s &
+                            ha_water$datetime <= e),]
 
-# Water level cannot be negative
-nrow(ha_water[which(ha_water$level_m < 0), ])
+ha_water <- ha_water[-which(ha_water$sensor_number == '06' &
+                            ha_water$datetime >= s &
+                            ha_water$datetime <= e),]
+
+# Remove the period when CASC almost hit zero DO in 2013
+s <- as.POSIXct('2013-03-21 20:00')
+e <- as.POSIXct('2013-04-02 23:00')
+
+plot(ha_water$datetime[ha_water$sensor_number == '06'],
+     ha_water$do_conc[ha_water$sensor_number == '06'], xlim = c(s,e))
+
+s06_glitch <- ha_water[which(ha_water$sensor_number == '06' &
+                            ha_water$datetime >= s &
+                            ha_water$datetime <= e),]
+
+ha_water <- ha_water[-which(ha_water$sensor_number == '06' &
+                            ha_water$datetime >= s &
+                            ha_water$datetime <= e),]
 
 # Break up the data into DO, conductivity, and water level dataframes
 # Remove the do saturation, I will calculate this later based on the cleaned data and using the function Bob developed.
@@ -1449,6 +1468,19 @@ xlims <- as.POSIXct(c('2012-11-01 00:00', '2012-11-25 00:00'))
 ylims <- c(-2, 13)
 plot(do_v1[[9]]$datetime, do_v1[[9]]$do_conc, pch = 20, xlim = xlims)
 
+# Look at the DO dip in 2014 on CASC_06. Is this a sensor glitch  or real data? Answer: Appears to match up with a rise in water level and conductivity, likely a flood signal.
+s <- as.POSIXct('2014-04-7 20:00')
+e <- as.POSIXct('2014-04-10 23:00')
+
+plot(ha_water$datetime[ha_water$sensor_number == '06'],
+     ha_water$do_conc[ha_water$sensor_number == '06'], xlim = c(s,e))
+
+plot(ha_water$datetime[ha_water$sensor_number == '06'],
+     ha_water$level_m[ha_water$sensor_number == '06'], xlim = c(s,e), ylim = c(1.1,1.6))
+
+plot(ha_water$datetime[ha_water$sensor_number == '06'],
+     ha_water$cond[ha_water$sensor_number == '06'], xlim = c(s,e), ylim = c(.150,.22))
+
 
 # Need to remove the anomalous zero values at sensor 1, 3, 4 (prior to 2016), 5 (in early 2015), 6 (prior to 2016-06), 7, and 9. Identified these based on visual inspection of the site figures. These will mess with the anomaly detection process because the gap filling process makes these values appear as part of the trend.
 
@@ -1512,9 +1544,9 @@ gap_fill <- lapply(ha_do_list, function(x){
   return(all_times)
 })
 
-# Merge the do_temp data into the above list
+# Merge the do_conc data into the above list
 gap_fill <- lapply(seq(gap_fill), function(i){
-  merge(gap_fill[[i]], do_v2[[i]], by = "datetime", all.x = TRUE)
+  merge(gap_fill[[i]], ha_do_list[[i]], by = "datetime", all.x = TRUE)
 })
 
 # Interpolate the missing temperature data, add a column to indicate whether the data are interpolated (helpful for plotting purposes)
@@ -1687,16 +1719,6 @@ temp <- do.call("rbind", temp)
 
 # Bind all flagged, anomalous zeros, and bad data
 compiled_do_data <- rbind(temp, anom_zeros, bad_data)
-
-# Mark the period when CASC had a stilling well full of silt
-# Everything from 2015-11-10 21:00 to 2016-04-04 20:00 is likely the result of a silty stilling well
-s <- as.POSIXct('2015-11-10 21:00')
-e <- as.POSIXct('2016-04-04 20:00')
-
-compiled_do_data$do_conc_flag[which(compiled_do_data$sensor_number == '06' &
-                                    compiled_do_data$datetime >= s &
-                                    compiled_do_data$datetime <= e)] <- 2
-
 
 # Order the dataframe by sensor number then by datetime
 compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
@@ -1995,7 +2017,14 @@ dev.off()
 
 ```
 
+
+
+
 Conductivity anomaly detection and bad data removal
+
+
+
+
 
 ```{r}
 # Isolate conductivity data
@@ -2047,6 +2076,45 @@ ha_cond   <- ha_cond[is.na(ha_cond$cond) == FALSE,]
 
 # Split the df into a list by the sensor
 ha_cond_list <- split(ha_cond, f = ha_cond$sensor_number)
+
+# Remove anomalous low values
+plot(ha_cond$datetime[ha_cond$sensor_number == '04'],
+     ha_cond$cond[ha_cond$sensor_number == '04'])
+abline(h = 0.21)
+
+plot(ha_cond$datetime[ha_cond$sensor_number == '05'],
+     ha_cond$cond[ha_cond$sensor_number == '05'])
+abline(h = 0.1)
+
+plot(ha_cond$datetime[ha_cond$sensor_number == '09'],
+     ha_cond$cond[ha_cond$sensor_number == '09'])
+abline(h = 0.1)
+
+# Specifiy the period that the zeros to be removed.
+low_windows <- data.frame(sensor = c('04','05','09'),
+                           cutoff = c(0.21, 0.1, 0.1))
+
+# Save the anomalous zero data, but remove these row for the gap filling process.
+anom_low_cond <- lapply(ha_cond_list, function(x){
+  sn <- x$sensor_number[1]
+  if(sn %in% low_windows$sensor){
+      x <- x[which(x$cond <= low_windows$cutoff[low_windows$sensor == sn]),]
+    } else { x <- NULL
+  } 
+  return(x)
+})
+
+anom_low_cond <- rbind(anom_low_cond[[4]], anom_low_cond[[5]], anom_low_cond[[9]])
+
+# Process to remove anomalous low values prior to gap filling.
+ha_cond_list <- lapply(ha_cond_list, function(x){
+  sn <- x$sensor_number[1]
+  if(sn %in% low_windows$sensor){
+      x <- x[-which(x$cond <= low_windows$cutoff[low_windows$sensor == sn]),]
+    } else {x} 
+  return(x)
+})
+
 
 # Gap filling
 # Create a new list that has a row for every datetime between the first observation and last observation for each site. 
@@ -2175,7 +2243,7 @@ lapply(ha_cond_list, function(x){
 dev.off()
 
 
-# # Glitch in sensor 02 in early 2018. Seem like someone put something in the well.
+# Glitch in sensor 02 in early 2018. Seem like someone put something in the well.
 # xlims <- as.POSIXct(c('2018-02-13 00:00', '2018-02-17 23:00'))
 # 
 # plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
@@ -2220,7 +2288,7 @@ s08_glitch <- ha_cond[which(ha_cond$sensor_number == '08' &
                         ha_cond$datetime >= xlims[1] &
                         ha_cond$datetime <= xlims[2]),] 
 
-ha_cond_list[[8]] <- ha_cond_list[[8]][-which(ha_cond_list[[8]]$datetime >= xlims[1] &                                                      ha_cond_list[[8]]$datetime <= xlims[2]),]
+ha_cond_list[[8]] <- ha_cond_list[[8]][-which(ha_cond_list[[8]]$datetime >= xlims[1] &                                       ha_cond_list[[8]]$datetime <= xlims[2]),]
 
 
 
@@ -2257,12 +2325,12 @@ gap_fill <- lapply(gap_fill, function(x){
 
 
 # After a lot of trying to tune the alpha parameter, I think the best approach is to use a different alpha level for each well. This is because each well has a unique variability and some wells are more sensitive to influence from floods than others.
-alpha  <- c(0.005,  #1
+alpha  <- c(0.003,  #1
             0.001,  #2
             0.007,  #3
             0.0001, #4
             0.001,  #5
-            0.001,  #6
+            0.006,  #6
             0.001,  #7
             0.001,  #8
             0.001,  #9
@@ -2293,7 +2361,7 @@ cond_val_anom <- lapply(seq_along(gap_fill), function(i){
 # Visualize the results
 y_label   <- "Cond (mS)"
 
-png("./Figures/Cond Figures/Cond_val_varied_alpha_w_interp.png", units = "in", 
+png("./Figures/Cond Figures/Cond_val_varied_alpha.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
@@ -2313,7 +2381,7 @@ lapply(cond_val_anom, function(x){
   # Highlight detected anomalies
   points(x$datetime[x$anomaly == 'Yes' & x$interp == 'no'],
          x$cond[x$anomaly == 'Yes' & x$interp == 'no'],
-         pch = 1, cex.pch = 2, col = 'red')
+         pch = 1, col = 'red')
     
   title(paste(x[1,2], x[1,3], sep = '_'), 
         line = 0.5, cex.main = 2)
@@ -2325,7 +2393,76 @@ lapply(cond_val_anom, function(x){
 dev.off()
 
 
+# Compile all the conductivity data
 
+# First, data flagged by the anomaly detection process
+
+# Second, data manually identified as bad (known from sensor service log) and questionable (appears anomalous compared to time series or other variables)
+
+# Data that was flagged as problematic across all sensors.
+# sensor_service # Definitely bad
+# s01_glitch     # Likely bad data
+# s06_glitch     # Data to be flagged 
+# casc_silt      # Data should be flagged as silty (flag 2)
+
+# Specific to conductivity data
+# s09_bad_data   # Definitely bad data
+# s02_glitch     # Flag as problematic
+# s08_glitch     # Flag
+# zero_cond      # Flag
+# na_cond        # Flag
+# anom_low_cond  # Should be flagged as problematic
+
+# Mark, compile the bad data
+sensor_service_cond <- sensor_service[, c('site','sensor_number','datetime','cond','ct','cond_temp')]
+
+bad_data_cond <- rbind(sensor_service_cond, s09_bad_data)
+
+bad_data_cond$cond      <- -999
+bad_data_cond$ct        <- -999
+bad_data_cond$cond_temp <- -999
+
+# Compile and flag questionable data
+
+# Casc silt receives flag 2
+casc_silt_cond           <- casc_silt[, c('site','sensor_number','datetime',
+                                          'cond','ct','cond_temp')]
+casc_silt$flag_cond      <- 2
+casc_silt$flag_cond_temp <- 2
+
+# All other data gets flag 1
+flag_data_cond <- rbind(s01_glitch[, c('site','sensor_number','datetime',
+                                       'cond','ct','cond_temp')],
+                        s06_glitch[, c('site','sensor_number','datetime',
+                                       'cond','ct','cond_temp')],
+                        s02_glitch, s08_glitch, zero_cond, na_cond, anom_low_cond)
+
+flag_data_cond$flag_cond      <- 1
+flag_data_cond$flag_cond_temp <- 1
+
+
+
+
+
+
+# Spike in sensor 2 in early 2018. I can't really find anything problematic with this data other than it seems really high.
+xlims <- as.POSIXct(c('2018-02-12 00:00', '2018-02-27 23:00'))
+ylims <- c(0.25, 0.3)
+
+plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
+     ha_cond$cond[ha_cond$sensor_number == '02'], xlim = xlims)
+
+plot(ha_cond$datetime[ha_cond$sensor_number == '02'],
+     ha_cond$ct[ha_cond$sensor_number == '02'], xlim = xlims)
+
+plot(ha_water$datetime[ha_water$sensor_number == '02'],
+     ha_water$level_m[ha_water$sensor_number == '02'], xlim = xlims, ylim = c(0.3,0.5))
+
+plot(ha_water$datetime[ha_water$sensor_number == '02'],
+     ha_water$level_temp[ha_water$sensor_number == '02'], xlim = xlims)
+
+
+# Rise in sensor 1
 xlims <- as.POSIXct(c('2012-03-13 00:00', '2012-03-15 23:00'))
 ylims <- c(0.25, 0.3)
 
@@ -2336,6 +2473,19 @@ anom_cond_val[[1]] %>%
 
 plot(ha_water$datetime[ha_water$sensor_number == '01'],
      ha_water$level_m[ha_water$sensor_number == '01'], xlim = xlims, ylim = c(2.4, 2.6))
+
+# There are a number of spikes in conductivity in HA10_04. Are these real data? Answer: Unclear, I *think* maybe yes. There was a flood on the mainstem on the middle fork that started on 2015-03-15.
+site <- '04'
+xlims <- as.POSIXct(c('2015-03-15 00:00', '2015-03-20 23:00'))
+ylims <- c(0.2, 0.7)
+
+plot(ha_water$datetime[ha_water$sensor_number == site],
+     ha_water$cond[ha_water$sensor_number == site], 
+     xlim = xlims, ylim = ylims)
+
+plot(ha_water$datetime[ha_water$sensor_number == site],
+     ha_water$level_m[ha_water$sensor_number == site], 
+     xlim = xlims, ylim = c(2,3))
 
 
 # Make a plot to ask Phil about flood influence in wells
