@@ -1199,7 +1199,6 @@ Dissolved oxygen anomaly detection and bad data removal
 # Isolate the DO data
 ha_do    <- ha_water[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp')]
 
-
 # When the RDO sensor is throwing NaN values, the temperature sensor seems to "freeze" and report the same number over and over or report a zero value. Based on the sensor service log, it appears that most of these prolonged instances occured because there was a kink in the RDO cord that had to be replaced before the sensor would begin reporting reasonable values again. For this reason, I will remove all data where the DO concentration is NaN.
 cable_fault <- ha_do[which(is.finite(ha_do$do_conc) == FALSE),]
 
@@ -1229,6 +1228,38 @@ ha_do_list <- lapply(ha_do_list, function(x){
   } else {x}
   return(x)
 })
+
+# Remove anomalously high data
+# Sensors with anomalously high values
+anom_high <- c('01','03','04') # removed sensor 5, th of 15 mg/L
+# Threshold for high values
+th <- c(12, NA, 7.5, 10, rep(NA, 6))
+
+anom_high_do <- lapply(seq_along(ha_do_list), function(i){
+  if(ha_do_list[[i]]$sensor_number[1] %in% anom_high){
+    ha_do_list[[i]] <- ha_do_list[[i]][which(ha_do_list[[i]]$do_conc > th[i]), ]
+  } else {ha_do_list[[i]] <- NA}
+  return(ha_do_list[[i]])
+})
+
+anom_high_do <- rbind(anom_high_do[[1]], anom_high_do[[3]], anom_high_do[[4]])
+
+ha_do_list <- lapply(seq_along(ha_do_list), function(i){
+  if(ha_do_list[[i]]$sensor_number[1] %in% anom_high){
+    ha_do_list[[i]] <- ha_do_list[[i]][-which(ha_do_list[[i]]$do_conc > th[i]), ]
+  } else {ha_do_list[[i]]}
+  return(ha_do_list[[i]])
+})
+
+# # Few observations not caught by the anomaly detection process
+# # Sensor 01. Anything over 12 mg/L
+# compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '01' & compiled_do_data$do_conc > 12] <- 1
+# # Sensor 03. Anyting over 7.5 mg/L
+# compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '03' & compiled_do_data$do_conc > 7.5] <- 1
+# # Sensor 04. Anything over 10 mg/L
+# compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '04' & compiled_do_data$do_conc > 10] <- 1
+# # Sensor 05. Anything over 15 mg/L
+# compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '05' & compiled_do_data$do_conc > 15] <- 1
 
 # Glitches in sensor DO data are really difficult to distinguish from flood data. I am removing these instances from sensor 9 because they are difficult for this reason. I determined that they are glitches in the RDO sensor based on visually inspecting the temperature data and comparing this to the other sensor data (water level, cond, other temp data) to evaluate for peak matching.
 # Is the temp anomaly data from sensor 9 in 2017 really an outlier or a flood? Answer: Probably bad data, no evidence of flood from this period.
@@ -1264,10 +1295,10 @@ glitch2_end <- as.POSIXct('2017-05-07 11:00')
 #      xlim = xlims, ylim = c(3.4, 3.6))
 
 # Store the glitches
-sensor_glitch   <- ha_do_list[[9]][which((ha_do_list[[9]]$datetime >= glitch1_srt &
-                                           ha_do_list[[9]]$datetime <= glitch1_end) |
-                                          (ha_do_list[[9]]$datetime >= glitch2_srt &
-                                           ha_do_list[[9]]$datetime <= glitch2_end)), ]
+s09_glitch   <- ha_do_list[[9]][which((ha_do_list[[9]]$datetime >= glitch1_srt &
+                                       ha_do_list[[9]]$datetime <= glitch1_end) |
+                                      (ha_do_list[[9]]$datetime >= glitch2_srt &
+                                       ha_do_list[[9]]$datetime <= glitch2_end)), ]
 
 # Remove the glitches for the anomaly detection process
 ha_do_list[[9]] <- ha_do_list[[9]][-which(ha_do_list[[9]]$datetime >= glitch1_srt &
@@ -1391,8 +1422,6 @@ lapply(do_temp_anom, function(x){
 )
 
 dev.off()
-
-
 
 
 
@@ -1669,33 +1698,17 @@ dev.off()
 
 
 # Recompile the data with flagged anomalies and "bad" data replaced with a missing data value.
-# Data to have a missing value in place of the "bad" data
-#   sensor_service
-#   sensor_glitch
-#   cable_fault
-# Data to be flagged as potentially anomalous
-#   anom_zeros (temp and conc)
-#   data flagged as anomalous from the anomalize package process
-#   data from Casc that was collected while there was silt in the well
-sensor_service <- sensor_service[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp')]
-
-bad_data       <- rbind(sensor_service, sensor_glitch, cable_fault)
-
-bad_data$do_conc      <- -999
-bad_data$do_temp      <- -999
-bad_data$do_conc_flag <- NA
-bad_data$do_temp_flag <- NA
-
-# Bind together the anomalous zero values
-anom_zeros_temp$do_temp_flag  <- 1
-anom_zeros_conc$do_conc_flag  <- 1
-
-anom_zeros_temp$do_conc_flag  <- NA
-anom_zeros_conc$do_temp_flag  <- NA
-
-anom_zeros <- rbind(anom_zeros_temp, anom_zeros_conc)
-
-i<-6
+# Problematic data across all sensors.
+#   sensor_service # Definitely bad
+#   s01_glitch     # Likely bad data
+#   s06_glitch     # Data to be flagged 
+#   casc_silt      # Data should be flagged as silty (flag 2)
+# Data specific to DO that needs to be flagged
+#   cable_fault (bad data)
+#   anom_zeros_temp 
+#   anom_zeros_conc
+#   anom_high_do
+#   s09_glitch
 
 # Merge the anomaly data into the into the site data (without the gap filling)
 temp <- lapply(seq(ha_do_list), function(i){
@@ -1712,44 +1725,56 @@ temp <- lapply(seq(ha_do_list), function(i){
   m$do_conc_flag[m$anomaly.y == 'Yes'] <- 1
   
   # Return the df without the anomaly column
-  return(m[,c(1:5,8,9)])
+  return(m[,c(2,3,1,4,5,9,8)])
 })
 
 temp <- do.call("rbind", temp)
 
+# Known bad data
+bad_data_do <- rbind(sensor_service[, c('site', 'sensor_number', 
+                                     'datetime', 'do_conc', 'do_temp')],
+                  cable_fault[, c('site', 'sensor_number', 
+                                  'datetime', 'do_conc', 'do_temp')])
+
+bad_data_do$do_conc      <- -999
+bad_data_do$do_temp      <- -999
+bad_data_do$do_conc_flag <- NA
+bad_data_do$do_temp_flag <- NA
+
+# Compile and flag questionable data
+
+# Casc silt receives flag 2
+casc_silt_do           <- casc_silt[, c('site','sensor_number','datetime',
+                                          'do_conc','do_temp')]
+casc_silt_do$do_conc_flag      <- 2
+casc_silt_do$do_temp_flag <- 2
+
+# All other data gets flag 1
+flag_data_do <- rbind(s01_glitch[, c('site','sensor_number','datetime',
+                                       'do_conc','do_temp')],
+                        s06_glitch[, c('site','sensor_number','datetime',
+                                       'do_conc','do_temp')],
+                        anom_zeros_temp, anom_zeros_conc, anom_high_do, s09_glitch)
+
+flag_data_do$do_conc_flag <- 1
+flag_data_do$do_temp_flag <- 1
+
 # Bind all flagged, anomalous zeros, and bad data
-compiled_do_data <- rbind(temp, anom_zeros, bad_data)
+compiled_do_data <- rbind(temp, bad_data_do, flag_data_do, casc_silt_do)
 
 # Order the dataframe by sensor number then by datetime
 compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
 
-# Few observations not caught by the anomaly detection process
-# Sensor 01. Anything over 12 mg/L
-compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '01' & compiled_do_data$do_conc > 12] <- 1
-# Sensor 03. Anyting over 7.5 mg/L
-compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '03' & compiled_do_data$do_conc > 7.5] <- 1
-# Sensor 04. Anything over 10 mg/L
-compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '04' & compiled_do_data$do_conc > 10] <- 1
-# Sensor 05. Anything over 15 mg/L
-compiled_do_data$do_conc_flag[compiled_do_data$sensor_number == '05' & compiled_do_data$do_conc > 15] <- 1
+# Write the dataframe to a csv
+# write.csv(compiled_do_data, './Data/HA_DO_CLEANED.csv', row.names = FALSE, quote = FALSE)
 
-# How many flagged observations that are potentially anomalous?
-nrow(compiled_do_data[which(compiled_do_data$do_temp_flag == 1 |
-                            compiled_do_data$do_conc_flag == 1 |
-                            compiled_do_data$do_conc_flag == 2),])
-
-# How many observation are missing due to sensor serivcing, glitches, or other technical issues?
-nrow(compiled_do_data[which(compiled_do_data$do_conc == -999),])
-
-# Write the cleaned data to a csv file
-# write.csv(compiled_do_data, './Data/HA_DO_QAQC.csv', row.names = FALSE, quote = FALSE)
 
 # Visualize with the data without any of the flagged anomalies or bad data
 vis <- split(compiled_do_data, f = as.factor(compiled_do_data$sensor_number))
 
 y_label   <- "DO Conc (mg/L)"
 
-png("./Figures/DO_conc_cleaned.png", units = "in", 
+png("./Figures/DO Figures/DO_conc_cleaned.png", units = "in", 
     width = 18, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
@@ -1759,23 +1784,20 @@ lapply(vis, function(x){
   x <- x[-which(x$do_conc_flag==1 | x$do_conc_flag==2 | x$do_conc==-999),]
   
   # Plot raw data without bad data or flagged data
-  plot(x$datetime, x$do_conc, xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
+  plot(x$datetime, x$do_conc, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20)
 
-  title(paste(x[1,2], x[1,3], sep = '_'), 
+  title(paste(x[1,1], x[1,2], sep = '_'), 
         line = 0.5, cex.main = 2)
   box(lwd = 2)
-  
   print(x$sensor_number[1])
-
-  }
-)
-
+  })
 dev.off()
 
 
 y_label   <- "DO Temp (C)"
 
-png("./Figures/DO_temp_cleaned.png", units = "in", 
+png("./Figures/DO Figures/DO_temp_cleaned.png", units = "in", 
     width = 18, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
@@ -1785,17 +1807,14 @@ lapply(vis, function(x){
   x <- x[-which(x$do_temp_flag==1 | x$do_conc_flag==2 | x$do_temp==-999),]
   
   # Plot raw data without bad data or flagged data
-  plot(x$datetime, x$do_temp, xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
+  plot(x$datetime, x$do_temp, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20)
 
   title(paste(x[1,2], x[1,3], sep = '_'), 
         line = 0.5, cex.main = 2)
   box(lwd = 2)
-  
   print(x$sensor_number[1])
-
-  }
-)
-
+  })
 dev.off()
 
 
@@ -2795,6 +2814,12 @@ dev.off()
 
 # Data looks pretty clean good. Will likely be able to mark all outliers with the anomaly detection process.
 
+# Anomaly detection process for sensor 8 does not work well with the flood in early 2015. Will manually remove visually identified high outliers
+
+sensor08_anomaly <- ha_level_list[[8]][which(ha_level_list[[8]]$level_temp >= 11.5),]
+
+ha_level_list[[8]] <- ha_level_list[[8]][-which(ha_level_list[[8]]$level_temp >= 11.5),]
+
 
 # Gap filling
 # Create a new list that has a row for every datetime between the first observation and last observation for each site. 
@@ -2812,11 +2837,11 @@ gap_fill <- lapply(seq(gap_fill), function(i){
 # Interpolate the missing temperature data, add a column to indicate whether the data are interpolated (helpful for plotting purposes)
 gap_fill <- lapply(gap_fill, function(x){
   # Interpolate data
-  x$level_m_interp <- na_interpolation(x$level_m, option = "linear")
+  x$level_temp_interp <- na_interpolation(x$level_temp, option = "linear")
   
   # Column to identify interpolated values
   x$interp <- 'no'
-  x$interp[is.na(x$level_m)] <- 'yes'
+  x$interp[is.na(x$level_temp)] <- 'yes'
   
   # Return the whole list
   return(x)
@@ -2829,24 +2854,22 @@ gap_fill <- lapply(gap_fill, function(x){
 
 
 # After a lot of trying to tune the alpha parameter, I think the best approach is to use a different alpha level for each well. This is because each well has a unique variability and some wells are more sensitive to influence from flood than others.
-# alpha  <- c(0.005,  #1
-#             0.020,  #2
-#             0.005,  #3
-#             0.005,  #4
-#             0.005,  #5
-#             0.010,  #6
-#             0.005,  #7
-#             0.010,  #8
-#             0.001,  #9
-#             0.010) #10
-
-alpha <- rep(0.01, 10)
+alpha  <- c(0.003,  #1
+            0.005,  #2
+            0.005,  #3
+            0.003,  #4
+            0.004,  #5
+            0.005,  #6
+            0.006,  #7
+            0.010,  #8
+            0.001,  #9
+            0.005) #10
 
 # Anomaly identification
 # Run the anomaly detection process
-anom_level_m <- lapply(seq_along(gap_fill), function(i){
+anom_level_temp <- lapply(seq_along(gap_fill), function(i){
   gap_fill[[i]] %>%  
-    time_decompose(level_m_interp, 
+    time_decompose(level_temp_interp, 
                    method = "stl",
                    frequency = "24 hours",
                    trend = "2 weeks") %>%
@@ -2857,30 +2880,33 @@ anom_level_m <- lapply(seq_along(gap_fill), function(i){
 })
 
 # Merge the anomaly data into the gap_fill df
-level_m_anom <- lapply(seq_along(gap_fill), function(i){
-  gap_fill[[i]]$anomaly <- anom_level_m[[i]]$anomaly
+level_temp_anom <- lapply(seq_along(gap_fill), function(i){
+  gap_fill[[i]]$anomaly <- anom_level_temp[[i]]$anomaly
   return(gap_fill[[i]])
 }) 
 
 # Visualize the results
+y_label   <- "Temp (C)"
 
-y_label   <- "Water Level (m)"
-
-png("./Figures/Water Level Figures/Water_level_alpha01.png", units = "in", 
+png("./Figures/Water Level Figures/Level_temp_w_interp.png", units = "in", 
     width = 12, height = 12, res = 300, bg = "transparent")
 
 par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
 
-lapply(level_m_anom, function(x){
+lapply(level_temp_anom, function(x){
   # Plot raw data, without the interpolated data
-  plot(x$datetime[x$interp == 'no'], x$level_m[x$interp == 'no'], 
-       xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+  plot(x$datetime[x$interp == 'no'], x$level_temp[x$interp == 'no'], 
+       xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
 
-  # Highlight detected anomalies in raw data (not including interpolated data)
-  points(x$datetime[x$anomaly == 'Yes' & x$interp == 'no'],
-         x$level_m[x$anomaly == 'Yes' & x$interp == 'no'],
-         pch = 1, cex.pch = 2, col = 'red')
-    
+  # Highlight interpolated data
+  points(x$datetime[x$interp == 'yes'], x$level_temp_interp[x$interp == 'yes'],
+         pch = 20, col = 'blue')
+  
+  # Highlight detected anomalies in raw data 
+  points(x$datetime[x$anomaly == 'Yes'],
+         x$level_temp_interp[x$anomaly == 'Yes'],
+         pch = 1, col = 'red')
+  
   title(paste(x[1,2], x[1,3], sep = '_'), 
         line = 0.5, cex.main = 2)
   box(lwd = 2)
@@ -2890,74 +2916,202 @@ lapply(level_m_anom, function(x){
 
 dev.off()
 
+# Compiled all water level data
+
+i <- 1
+
+# First, data flagged by the anomaly detection process. Note that I only ran the anomaly detection for the temperature since I only manually cleaned the water level data.
+# Merge the anomaly data into the into the site data (without the gap filling)
+temp <- lapply(seq_along(ha_level_list), function(i){
+  # Merge the temperature anomaly data into the site data
+  m <- merge(ha_level_list[[i]], level_temp_anom[[i]][, c('datetime', 'anomaly')], 
+             by = 'datetime')
+  
+  # Create a flag column
+  m$level_temp_flag[m$anomaly == 'Yes'] <- 1
+ 
+  
+  # Return the df without the anomaly column
+  return(m[,c(2,3,1,4,5,7)])
+})
+
+# Second, data manually identified as bad (known from sensor service log) and questionable (appears anomalous compared to time series or other variables)
+
+# Data that was flagged as problematic across all sensors.
+# sensor_service # Definitely bad
+# casc_silt      # Data should be flagged as silty (flag 2)
+# s01_glitch     # Likely bad data (flag 1)
+# s06_glitch     # Data to be flagged (flag 1)
+
+# Specific to level data
+# sensor08_anomaly   # Temp anomaly (flag 1)
+# anom_low_level     # Water level anomaly (flag 1)
+# secondary_low_data # Low water level data. Likely a result of the sensor being returned to the wrong depth following service or being disturbed in some way. The relative data during these periods is likely good, it is just shifted from the rest of the dataset. Will be marked with flag 3.
+
+
+# Mark, compile the bad data
+sensor_service_level <- sensor_service[, c('site','sensor_number','datetime','level_m','level_temp')]
+
+sensor_service_level$level_m      <- -999
+sensor_service_level$level_temp   <- -999
+
+sensor_service_level$level_m_flag    <- NA
+sensor_service_level$level_temp_flag <- NA
+
+# Compile and flag questionable data
+
+# Casc silt receives flag 2
+casc_silt_level          <- casc_silt[, c('site','sensor_number','datetime',
+                                          'level_m','level_temp')]
+casc_silt_level$level_m_flag    <- 2
+casc_silt_level$level_temp_flag <- 2
+
+# Both temp and water depth anomalous
+flag_data_level <- rbind(s01_glitch[, c('site','sensor_number','datetime',
+                                       'level_m','level_temp')],
+                         s06_glitch[, c('site','sensor_number','datetime',
+                                       'level_m','level_temp')],
+                         anom_low_level)
+
+flag_data_level$level_m_flag    <- 1
+flag_data_level$level_temp_flag <- 1
+
+# ONLY temp anomalous
+sensor08_anomaly$level_m_flag    <- NA
+sensor08_anomaly$level_temp_flag <- 1
+
+# ONLY water level data needs to be flagged (likely shifted but relative data is okay, flag 3). Since these data are only problematic for the water level data and not the temperature data, they were included in the temp anomaly detection process. So, I need to merge the water level flag from this data into the data that has the temp anomalies
+secondary_low_data$level_m_flag    <- 3
+
+# Combine all sensor data into one df
+temp <- do.call("rbind", temp)
+
+# Merge the flag 3 data into the temp df
+temp <- merge(temp, secondary_low_data[,c('sensor_number','datetime','level_m_flag')],
+      by = c('sensor_number','datetime'), all.x = TRUE)
+
+# Rearrange columns
+temp <- temp[,c(3,1,2,4,5,7,6)]
+
+# Bind all flagged, anomalous zeros, and bad data
+compiled_level_data <- rbind(temp, sensor_service_level, 
+                             flag_data_level, sensor08_anomaly)
+
+# Order the dataframe by sensor number then by datetime
+compiled_level_data <- compiled_level_data[with(compiled_level_data, order(sensor_number, datetime)),]
+
+# Write the dataframe to a csv
+# write.csv(compiled_level_data, './Data/HA_LEVEL_CLEANED.csv', row.names = FALSE, quote = FALSE)
+
+level_list <- split(compiled_level_data, f = compiled_level_data$sensor_number)
+
+# One final visualization of cleaned
+y_label   <- "Temp (C)"
+
+png("./Figures/Water Level Figures/Level_temp_cleaned.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level_list, function(x){
+  # Plot raw data, without flagged or bad data
+  plot(x$datetime[is.na(x$level_temp_flag) & x$level_temp != -999], 
+       x$level_temp[is.na(x$level_temp_flag) & x$level_temp != -999], 
+       xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
+  title(paste(x[1,1], x[1,2], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  })
+dev.off()
+
+
+y_label   <- "Level (m)"
+
+png("./Figures/Water Level Figures/Water_level_cleaned.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level_list, function(x){
+  # Plot raw data, without flagged or bad data
+  plot(x$datetime[is.na(x$level_m_flag) & x$level_m != -999], 
+       x$level_m[is.na(x$level_m_flag) & x$level_m != -999], 
+       xlab = " ", ylab = y_label, cex.lab = 2, cex.axis = 2, pch = 20)
+  title(paste(x[1,1], x[1,2], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+  })
+dev.off()
+
+
 
 # There are several sensors that have a cluster of points that are lower than everything else. Investigate these
 
 # Cluster of points in early 2018 for sensor 01. Looks like the level sensor may have been disturbed in some way during this period.
-xlims <- as.POSIXct(c('2018-02-01 00:00', '2018-04-01 23:00'))
-plot(ha_level$datetime[ha_level$sensor_number == '01'],
-     ha_level$level_m[ha_level$sensor_number == '01'], 
-     pch = 20, xlim = xlims, ylim = c(2.2,3))
-abline(v=as.POSIXct('2018-02-22 8:00'))
-abline(v=as.POSIXct('2018-03-08 12:00'))
-abline(v=as.POSIXct('2018-02-13 12:00'))
-
-plot(ha_level$datetime[ha_level$sensor_number == '01'],
-     ha_level$level_temp[ha_level$sensor_number == '01'], 
-     pch = 20, xlim = xlims, ylim = c(5,6.2))
-
-plot(compiled_do_data$datetime[compiled_do_data$sensor_number == '01'],
-     compiled_do_data$do_conc[compiled_do_data$sensor_number == '01'], 
-     pch = 20, xlim = xlims, ylim = c(4,5))
-
-plot(compiled_cond_data$datetime[compiled_cond_data$sensor_number == '01'],
-     compiled_cond_data$cond[compiled_cond_data$sensor_number == '01'], 
-     pch = 20, xlim = xlims, ylim = c(0.26,0.28))
-
-# Cluster of points in mid 2016 for sensor 01. This cluster is bounded by two services in the log. I'm sure this is because the sensor wasn't returned to the proper placement in the well. Could probably be corrected by shifting the data during this period to up to the overall trend. 
-xlims <- as.POSIXct(c('2016-07-01 00:00', '2016-09-01 23:00'))
-plot(ha_level$datetime[ha_level$sensor_number == '01'],
-     ha_level$level_m[ha_level$sensor_number == '01'], 
-     pch = 20, xlim = xlims, ylim = c(2.25,2.5))
-abline(v=as.POSIXct('2016-07-20 12:00')) # date of sensor service
-abline(v=as.POSIXct('2016-08-25 12:00')) # date of sensor service
-
-# Is the data around the start of 2017 for sensor 02 just due to floods? Looks like it's just due to low water.
-xlims <- as.POSIXct(c('2016-12-01 00:00', '2017-03-01 23:00'))
-plot(ha_level$datetime[ha_level$sensor_number == '02'],
-     ha_level$level_m[ha_level$sensor_number == '02'], 
-     pch = 20, xlim = xlims, ylim = c(0.05,.6))
-
-# Cluster of low points in early 2014 for sensor 03. Looks like the cable was disturbed in some way (not on the sensor log), but returned to the right depth when the sensor was serviced on 2014-02-27.
-xlims <- as.POSIXct(c('2014-02-01 00:00', '2014-03-01 23:00'))
-plot(ha_level$datetime[ha_level$sensor_number == '03'],
-     ha_level$level_m[ha_level$sensor_number == '03'], 
-     pch = 20, xlim = xlims, ylim = c(3,3.5))
-abline(v=as.POSIXct('2014-02-27 12:00')) # date of sensor service
-abline(v=as.POSIXct('2014-02-12 12:00')) # not a date of sensor service
-
-# Cluster of low points in mid 2018 for sensor 04. 
-xlims <- as.POSIXct(c('2018-04-01 00:00', '2018-12-15 23:00'))
-plot(ha_level$datetime[ha_level$sensor_number == '04'],
-     ha_level$level_m[ha_level$sensor_number == '04'], 
-     pch = 20, xlim = xlims, ylim = c(1.7,3))
-abline(v=as.POSIXct('2018-08-07 12:00')) # date of sensor service
-abline(v=as.POSIXct('2018-06-06 12:00')) # date of sensor service
-abline(v=as.POSIXct('2018-09-14 12:00')) # date of sensor service
-
-# There are so many examples of this happening. Either the sensor gets returned to the wrong depth when it's serviced or something disturbs the height of the sensor and it returns to the correct depth only when serviced.
-xlims <- as.POSIXct(c('2013-06-01 00:00', '2013-12-01 23:00'))
-plot(ha_level$datetime[ha_level$sensor_number == '04'],
-     ha_level$level_m[ha_level$sensor_number == '04'], 
-     pch = 20, xlim = xlims, , ylim = c(1.75,3))
-abline(v=as.POSIXct('2013-08-21 12:00')) # date of sensor service
-abline(v=as.POSIXct('2013-09-24 12:00')) # date of sensor service
-
-xlims <- as.POSIXct(c('2017-07-01 00:00', '2018-12-15 23:00'))
-plot(ha_level$datetime[ha_level$sensor_number == '04'],
-     ha_level$level_m[ha_level$sensor_number == '04'], 
-     pch = 20, xlim = xlims, ylim = c(1.5,3.1))
-abline(h = 1.9)
+# xlims <- as.POSIXct(c('2018-02-01 00:00', '2018-04-01 23:00'))
+# plot(ha_level$datetime[ha_level$sensor_number == '01'],
+#      ha_level$level_m[ha_level$sensor_number == '01'], 
+#      pch = 20, xlim = xlims, ylim = c(2.2,3))
+# abline(v=as.POSIXct('2018-02-22 8:00'))
+# abline(v=as.POSIXct('2018-03-08 12:00'))
+# abline(v=as.POSIXct('2018-02-13 12:00'))
+# 
+# plot(ha_level$datetime[ha_level$sensor_number == '01'],
+#      ha_level$level_temp[ha_level$sensor_number == '01'], 
+#      pch = 20, xlim = xlims, ylim = c(5,6.2))
+# 
+# plot(compiled_do_data$datetime[compiled_do_data$sensor_number == '01'],
+#      compiled_do_data$do_conc[compiled_do_data$sensor_number == '01'], 
+#      pch = 20, xlim = xlims, ylim = c(4,5))
+# 
+# plot(compiled_cond_data$datetime[compiled_cond_data$sensor_number == '01'],
+#      compiled_cond_data$cond[compiled_cond_data$sensor_number == '01'], 
+#      pch = 20, xlim = xlims, ylim = c(0.26,0.28))
+# 
+# # Cluster of points in mid 2016 for sensor 01. This cluster is bounded by two services in the log. I'm sure this is because the sensor wasn't returned to the proper placement in the well. Could probably be corrected by shifting the data during this period to up to the overall trend. 
+# xlims <- as.POSIXct(c('2016-07-01 00:00', '2016-09-01 23:00'))
+# plot(ha_level$datetime[ha_level$sensor_number == '01'],
+#      ha_level$level_m[ha_level$sensor_number == '01'], 
+#      pch = 20, xlim = xlims, ylim = c(2.25,2.5))
+# abline(v=as.POSIXct('2016-07-20 12:00')) # date of sensor service
+# abline(v=as.POSIXct('2016-08-25 12:00')) # date of sensor service
+# 
+# # Is the data around the start of 2017 for sensor 02 just due to floods? Looks like it's just due to low water.
+# xlims <- as.POSIXct(c('2016-12-01 00:00', '2017-03-01 23:00'))
+# plot(ha_level$datetime[ha_level$sensor_number == '02'],
+#      ha_level$level_m[ha_level$sensor_number == '02'], 
+#      pch = 20, xlim = xlims, ylim = c(0.05,.6))
+# 
+# # Cluster of low points in early 2014 for sensor 03. Looks like the cable was disturbed in some way (not on the sensor log), but returned to the right depth when the sensor was serviced on 2014-02-27.
+# xlims <- as.POSIXct(c('2014-02-01 00:00', '2014-03-01 23:00'))
+# plot(ha_level$datetime[ha_level$sensor_number == '03'],
+#      ha_level$level_m[ha_level$sensor_number == '03'], 
+#      pch = 20, xlim = xlims, ylim = c(3,3.5))
+# abline(v=as.POSIXct('2014-02-27 12:00')) # date of sensor service
+# abline(v=as.POSIXct('2014-02-12 12:00')) # not a date of sensor service
+# 
+# # Cluster of low points in mid 2018 for sensor 04. 
+# xlims <- as.POSIXct(c('2018-04-01 00:00', '2018-12-15 23:00'))
+# plot(ha_level$datetime[ha_level$sensor_number == '04'],
+#      ha_level$level_m[ha_level$sensor_number == '04'], 
+#      pch = 20, xlim = xlims, ylim = c(1.7,3))
+# abline(v=as.POSIXct('2018-08-07 12:00')) # date of sensor service
+# abline(v=as.POSIXct('2018-06-06 12:00')) # date of sensor service
+# abline(v=as.POSIXct('2018-09-14 12:00')) # date of sensor service
+# 
+# # There are so many examples of this happening. Either the sensor gets returned to the wrong depth when it's serviced or something disturbs the height of the sensor and it returns to the correct depth only when serviced.
+# xlims <- as.POSIXct(c('2013-06-01 00:00', '2013-12-01 23:00'))
+# plot(ha_level$datetime[ha_level$sensor_number == '04'],
+#      ha_level$level_m[ha_level$sensor_number == '04'], 
+#      pch = 20, xlim = xlims, , ylim = c(1.75,3))
+# abline(v=as.POSIXct('2013-08-21 12:00')) # date of sensor service
+# abline(v=as.POSIXct('2013-09-24 12:00')) # date of sensor service
+# 
+# xlims <- as.POSIXct(c('2017-07-01 00:00', '2018-12-15 23:00'))
+# plot(ha_level$datetime[ha_level$sensor_number == '04'],
+#      ha_level$level_m[ha_level$sensor_number == '04'], 
+#      pch = 20, xlim = xlims, ylim = c(1.5,3.1))
+# abline(h = 1.9)
 
 
 
