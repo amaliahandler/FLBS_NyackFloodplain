@@ -2681,6 +2681,17 @@ low_threshold <- c(2.1, 0.05, 3, 1.7, 1.5, 0.5, 3, 0.25, 1.5, 0)
 ha_level_list <- split(ha_level, f = ha_level$sensor_number)
 
 # Remove values below the threshold
+# This is really inificient, it probably makes more sense to make a list, apply the thresholds for bad low data, then unlist it back to a df, then run the low number process.
+# anom_low_level <- ha_level[0,]
+# for(i in 1:nrow(ha_level)){
+#   sn <- as.numeric(ha_level[i,'sensor_number'])
+#   if(is.na(ha_level[i,'level_m'])){
+#     NA
+#   } else if(ha_level[i, 'level_m'] <= low_threshold[sn]){
+#     rbind(anom_low_level, ha_level[i,])
+#   } else {NA}
+# }
+
 anom_low_level <- lapply(seq_along(ha_level_list), function(i){
   temp <- ha_level_list[[i]][which(ha_level_list[[i]]$level_m <=
                                               low_threshold[i]),]
@@ -2697,13 +2708,16 @@ ha_level_list <- lapply(seq_along(ha_level_list), function(i){
 })
 
 
+ha_level <- do.call(rbind, ha_level_list)
+
+
 # A second round of flagging for low values. Unlike the first round of removal above, this is likely flagging observations that are shifted because the sensor was either returned to the incorrect depth or disturbed in some way that caused the sensor to drop. Note that the temp data for these periods is likely completely fine.
-sensor <- c('01','01','02','02','03','04','05','07')
+sensor <- c('01','01','02','02','03','04','04','05','07')
 start  <- as.Date(c('2012-01-01','2017-01-01','2012-01-01','2017-04-01',
-                    '2012-01-01','2016-01-01','2012-01-01','2012-01-01'))
+                    '2012-01-01','2016-01-01','2012-01-01','2012-01-01','2012-01-01'))
 end    <- as.Date(c('2016-02-01','2018-01-01','2016-01-01','2019-07-01',
-                    '2016-01-01','2019-07-01','2015-03-01','2019-07-01'))
-th     <- c(2.3,2.3,0.2,0.2,3.13,1.9,2.4,3.5)
+                    '2016-01-01','2019-07-01','2014-12-15','2015-03-01','2019-07-01'))
+th     <- c(2.3,2.3,0.2,0.2,3.13,1.9,1.92,2.4,3.5)
 
 # Store the data for later flagging
 secondary_low_data <- ha_level[0,]
@@ -2718,35 +2732,68 @@ for(i in 1:length(sensor)){
 # Remove these secondary data from the level dataframe
 # Stuck here. Trying to flag observations prior to the outlier detection process. 
 ha_level_red <- ha_level
-ha_level_red$level_m_flag <- NA
 for(i in 1:length(sensor)){
   ha_level_red <- ha_level_red[-which(ha_level_red$sensor_number == sensor[i] &
                        ha_level_red$datetime >= start[i] & 
                        ha_level_red$datetime <= end[i] &
-                       ha_level_red$level_m <= th[i]), "level_m_flag"] <- 3
+                       ha_level_red$level_m <= th[i]),]
 }
 
+# Convert to list
+ha_level_list <- split(ha_level_red, f = ha_level_red$sensor_number)
 
-# Save the low data, but remove these row for the gap filling process.
-secondary_low_data <- lapply(ha_level_list, function(x){
-  sn <- x$sensor_number[1]
-  if(sn %in% sensor){
-    if(length(sensor[sensor == sn]) == 2){
-      temp <- 
-      s <- secondary_low_data[match(sn, secondary_low_data$sensor), 'start']
-      e <- secondary_low_data[match(sn, secondary_low_data$sensor), 'end']
-      x <- x[which(x$level_m <= 0 & x$datetime >= s & x$datetime <= e), ]
-    } else {
-      s <- secondary_low_data[match(sn, secondary_low_data$sensor), 'start']
-      e <- secondary_low_data[match(sn, secondary_low_data$sensor), 'end']
-      x <- x[which(x$level_m <= 0 & x$datetime >= s & x$datetime <= e), ]
-    } 
-    else {x <- NULL }
- return(x)
-})
+# Plot it out without any futher anomaly removal. 
+y_label   <- "Water Level (m)"
 
-x<-ha_level_list[[1]]
+png("./Figures/Water Level Figures/Water_level_wo_low_values.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
 
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(ha_level_list, function(x){
+  plot(x$datetime, x$level_m, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+
+  title(paste(x[1,2], x[1,3], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+
+  }
+)
+
+dev.off()
+
+# Data look good for water level.
+
+
+###############################################################
+
+# Water level temperature
+
+# Need to add back the secondary low data. While these data are potentially problematic for water level, these points were likely in the water and not altered in terms of temperature.
+
+ha_level_temp <- rbind(ha_level_red, secondary_low_data)
+
+ha_level_list <- split(ha_level_temp, f = ha_level_temp$sensor_number)
+
+y_label   <- "Temp (C)"
+
+png("./Figures/Water Level Figures/Water_temp_initial.png", units = "in", 
+    width = 12, height = 12, res = 300, bg = "transparent")
+
+par(mfrow = c(5,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(ha_level_list, function(x){
+  plot(x$datetime, x$level_temp, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20, cex.pch = 2)
+
+  title(paste(x[1,1], x[1,2], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  box(lwd = 2)
+ })
+dev.off()
+
+# Data looks pretty clean good. Will likely be able to mark all outliers with the anomaly detection process.
 
 
 # Gap filling
