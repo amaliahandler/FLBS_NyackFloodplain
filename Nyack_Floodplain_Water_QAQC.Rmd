@@ -973,8 +973,8 @@ bad_data_cond$cond_temp_flag <- NA
 # Casc silt receives flag 2
 casc_silt_cond           <- casc_silt[, c('site','sensor_number','datetime',
                                           'cond','cond_temp','ct')]
-casc_silt$cond_flag      <- 2
-casc_silt$cond_temp_flag <- 2
+casc_silt_cond$cond_flag      <- 2
+casc_silt_cond$cond_temp_flag <- 2
 
 # All other data gets flag 1
 flag_data_cond <- rbind(s01_glitch[, c('site','sensor_number','datetime',
@@ -990,7 +990,7 @@ flag_data_cond$cond_temp_flag <- 1
 temp <- do.call("rbind", temp)
 
 # Bind all flagged, anomalous zeros, and bad data
-compiled_cond_data <- rbind(temp, bad_data_cond, flag_data_cond)
+compiled_cond_data <- rbind(temp, bad_data_cond, flag_data_cond, casc_silt_cond)
 
 # Order the dataframe by sensor number then by datetime
 compiled_cond_data <- compiled_cond_data[with(compiled_cond_data, order(sensor_number, datetime)),]
@@ -1378,10 +1378,13 @@ temp <- temp[,c(3,1,2,4,5,7,6)]
 
 # Bind all flagged, anomalous zeros, and bad data
 compiled_level_data <- rbind(temp, sensor_service_level, 
-                             flag_data_level, sensor08_anomaly)
+                             flag_data_level, sensor08_anomaly, casc_silt_level)
 
 # Order the dataframe by sensor number then by datetime
 compiled_level_data <- compiled_level_data[with(compiled_level_data, order(sensor_number, datetime)),]
+
+# Convert the water level data from depth to sensor to length from ground surface to water surface (water table relative to ground surface: positive for above ground and negative for below ground).
+
 
 # Write the dataframe to a csv
 write.csv(compiled_level_data, './Data/Nyack_level_cleaned.csv', row.names = FALSE, quote = FALSE)
