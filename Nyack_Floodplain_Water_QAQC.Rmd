@@ -9,9 +9,13 @@ editor_options:
   chunk_output_type: console
 ---
 
-This script is used to clean the River Net Nyack Floodplain water physical and chemical data. Code was written by Amalia Handler, Environmental Data Initiative Summer Data Science Fellow, during summer 2019. Please contact her with any questions: amalia.handler@gmail.com
+This script is used to clean the River Net Nyack Floodplain water physical and chemical data. The process here removes known bad data (independently confirmed via sensor service logs or personal communication with those responsible for collecting the data and maintaining the sensor networ) and flags data that is suspected of being anomalous, although this lacks independent confirmation. Know bad data has all data values replaced with the missing data value (-999) while all other data is flagged.
 
-Outlier detection process
+- A flag of "1" signifies that the data is suspected of being anomalous
+- A flag of "2" signifies that the data reflect that of a silt-laden stilling well (only relevant to Cascadilla (06) sensors)
+- A flag of "3" signifies that the data are down-shifted but relative values are likely fine (only relevant to water level depth data)
+
+Code was written by Amalia Handler, Environmental Data Initiative Summer Data Science Fellow, during summer 2019. Please contact her with any questions: amalia.handler@gmail.com
 
 ```{r}
 # Load packages and data
