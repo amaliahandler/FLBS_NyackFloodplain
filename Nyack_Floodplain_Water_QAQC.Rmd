@@ -1,5 +1,5 @@
 ---
-title: "Nyack Floodplain Data Archiving"
+title: "Nyack Floodplain Water Data QAQC"
 author: "Amalia Handler"
 date: "6/24/2019"
 output: 
@@ -188,9 +188,9 @@ plot(ha_do$datetime[ha_do$sensor_number=='09'],
      ha_do$do_temp[ha_do$sensor_number=='09'],
      xlim = xlims, ylim =  c(7, 14), ylab = "temp", xlab = "")
 
-plot(ha_level$datetime[ha_level$sensor_number=='09'],
-     ha_level$level_m[ha_level$sensor_number=='09'],
-     xlim = xlims, , ylim = c(1.75,1.95), ylab = "level", xlab = "")
+plot(ha_water$datetime[ha_water$sensor_number=='09'],
+     ha_water$level_m[ha_water$sensor_number=='09'],
+     xlim = xlims, ylim = c(1.75,1.95), ylab = "level", xlab = "")
 
 # Glitch 1
 glitch1_srt <- as.POSIXct('2017-10-01 13:00')
@@ -204,11 +204,11 @@ with(ha_do[ha_do$sensor_number == '09',],
      plot(datetime, do_temp, xlim = xlims, ylim =  c(3, 8),
           ylab = "temp", xlab = ""))
 
-with(ha_level[ha_level$sensor_number == '09',],
+with(ha_water[ha_water$sensor_number == '09',],
      plot(datetime, level_m, xlim = xlims, ylim = c(3.4, 3.6),
           ylab = "level", xlab = ""))
 
-with(ha_cond[ha_cond$sensor_number == '09',],
+with(ha_water[ha_water$sensor_number == '09',],
      plot(datetime, cond, xlim = xlims, ylab = "cond", xlab = ""))
 
 # Glitch 2
@@ -554,8 +554,14 @@ compiled_do_data <- rbind(temp, bad_data_do, flag_data_do, casc_silt_do)
 # Order the dataframe by sensor number then by datetime
 compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
 
+# Calculate the DO saturation (Bob's method)
+compiled_do_data$do_sat <- -1
+
+# Rearrange column order
+compiled_do_data <- compiled_do_data[, c(1:4,8,5:7)]
+
 # Write the dataframe to a csv
-write.csv(compiled_do_data, './Data/HA_DO_CLEANED.csv', row.names = FALSE, quote = FALSE)
+write.csv(compiled_do_data, './Data/Nyack_do_cleaned.csv', row.names = FALSE, quote = FALSE)
 
 
 ############################################################################
@@ -990,7 +996,7 @@ compiled_cond_data <- rbind(temp, bad_data_cond, flag_data_cond)
 compiled_cond_data <- compiled_cond_data[with(compiled_cond_data, order(sensor_number, datetime)),]
 
 # Write the dataframe to a csv
-write.csv(compiled_cond_data, './Data/HA_COND_CLEANED.csv', row.names = FALSE, quote = FALSE)
+write.csv(compiled_cond_data, './Data/Nyack_cond_cleaned.csv', row.names = FALSE, quote = FALSE)
 
 ###################################################################
 
@@ -1378,7 +1384,7 @@ compiled_level_data <- rbind(temp, sensor_service_level,
 compiled_level_data <- compiled_level_data[with(compiled_level_data, order(sensor_number, datetime)),]
 
 # Write the dataframe to a csv
-write.csv(compiled_level_data, './Data/HA_LEVEL_CLEANED.csv', row.names = FALSE, quote = FALSE)
+write.csv(compiled_level_data, './Data/Nyack_level_cleaned.csv', row.names = FALSE, quote = FALSE)
 
 ####################################################################
 
