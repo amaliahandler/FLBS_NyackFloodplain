@@ -605,73 +605,7 @@ sat_df$sat_do_conc <- dosat(sat_df$do_temp, sat_df$BP_mmHg)
 
 sat_df$do_sat_man_calc <- sat_df$do_conc/sat_df$sat_do_conc * 100
 
-# For cases when there is no BP data from the local met station, use the instrument's internally calculated DO saturatation (which is based on the BP at the last calibration point). Make a flag column to indicate this.
-
-# Merge the instrument calculated DO saturation into the df
-# This is increasing the number of rows in the DF, but I have no idea which rows.
-# test <- merge(sat_df, ha_water[,c('datetime', 'sensor_number','do_sat')], by = c('datetime', 'sensor_number'))
-
-# This fails for cases when the flag column is NA
-sat_df$do_sat_flag <- NULL
-for(i in 1:nrow(sat_df)){
-  # If there is no BP, use the do_sat measurement from the instrument
-  # Flag 4 indicates that this is an instrument calculated DO saturatation measurement
-  if(is.na(sat_df$BP_mmHg[i])){
-    sat_df$do_sat_flag[i] <- 5
-    sat_df$do_sat[i]      <- sat_df$do_sat[i]
-    
-  # If either the conc or temp are bad data (-999), then the sat data is bad 
-  } else if(sat_df$do_conc[i] == -999 | sat_df$do_temp[i] == -999){
-    sat_df$do_sat[i]      <- -999
-    sat_df$do_sat_flag[i] <- NA
-    
-  # If both conc and temp flags are NA, then saturated % DO is okay
-  # (bad data are accounted for above)
-  } else if(is.na(sat_df$do_conc_flag[i]) & is.na(sat_df$do_temp_flag[i])){
-    sat_df$do_sat_flag[i] <- 4
-    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
-   
-  # If there is a flag for the DO concentration or temperature, apply that 
-  # same flag to the DO % saturation column  
-  } else if(sat_df$do_conc_flag[i] == 1 | sat_df$do_temp_flag[i] == 1){
-    sat_df$do_sat_flag[i] <- 1
-    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
-  } else if(sat_df$do_conc_flag[i] == 2 | sat_df$do_temp_flag[i] == 2){
-    sat_df$do_sat_flag[i] <- 1
-    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
- 
-  # In all other cases, use the manually calculated do % saturation  
-  } else {
-    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
-    sat_df$do_sat_flag[i] <- 4
-  }
-}
-
-
-# Think about this in terms of when a do_sat value calculated by the instrument should be overwritten by the manually calculated do % saturation.
-sat_df$do_sat_flag <- NULL
-for(i in 1:nrow(sat_df)){
-  if(sat_df$do_conc[i] == -999 | sat_df$do_temp[i] == -999){
-    sat_df$do_sat_flag[i] <- NA
-    sat_df$do_sat[i]      <- -999
-    
-  } else if(is.na(sat_df$do_conc_flag[i]) & is.na(sat_df$do_temp_flag[i])){
-    sat_df$do_sat_flag[i] <- 4
-    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
-  
-  } else if(sat_df$do_conc_flag[i] == 1 | sat_df$do_temp_flag[i] == 1){
-    sat_df$do_sat_flag[i] <- 1
-    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
-  } else if(sat_df$do_conc_flag[i] == 2 | sat_df$do_temp_flag[i] == 2){
-    sat_df$do_sat_flag[i] <- 2
-    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
-  } else {
-    sat_df$do_sat_flag[i] <- 5
-  }
-  print(i)
-}
-
-# When the BP is NA, use the instrument calculated do % saturation
+# When the BP is NA, replace the manaually calculated do_sat (which will be NA) with the instrument calculated do % saturation
 sat_df$do_sat_comp <- sat_df$do_sat_man_calc
 for(i in 1:nrow(sat_df)){
   if(is.na(sat_df$BP_mmHg[i])){
@@ -690,12 +624,11 @@ sat_df$do_sat_flag[which(sat_df$do_conc == -999 | sat_df$do_temp == -999)] <- -9
 sat_df$do_sat_flag[which(sat_df$do_conc_flag == 1 | sat_df$do_temp_flag == 1)] <- 1
 sat_df$do_sat_flag[which(sat_df$do_conc_flag == 2 | sat_df$do_temp_flag == 2)] <- 2
 
-
-
-    
-
 # Rearrange column order
-compiled_do_data <- compiled_do_data[, c(1:4,8,5:7)]
+compiled_do_data <- sat_df[, c(2,3,1,4,5,12,7,8,13)]
+
+# Rename column for saturated % do
+colnames(compiled_do_data)[6] <- 'do_sat'
 
 # Write the dataframe to a csv
 write.csv(compiled_do_data, './Data/Nyack_do_cleaned.csv', row.names = FALSE, quote = FALSE)
