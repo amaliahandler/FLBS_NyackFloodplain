@@ -121,7 +121,7 @@ Dissolved oxygen anomaly detection and bad data removal
 
 ```{r}
 # Isolate the DO data. Remove the DO saturation, I will calculate this later based on the cleaned data and using the function Bob Hall developed.
-ha_do    <- ha_water[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp')]
+ha_do    <- ha_water[, c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp', 'do_sat')]
 
 # When the RDO sensor is reporting NaN values, the temperature sensor seems to "freeze" and report the same number over and over or report a zero value. Based on the sensor service log, it appears that most of these prolonged instances occured because there was a kink in the sensor cord that had to be replaced before the sensor would begin reporting reasonable values again. For this reason, I will remove all data where the DO concentration is NaN.
 cable_fault <- ha_do[which(is.finite(ha_do$do_conc) == FALSE),]
@@ -514,16 +514,17 @@ temp <- lapply(seq(ha_do_list), function(i){
   m$do_conc_flag[m$anomaly.y == 'Yes'] <- 1
   
   # Return the df without the anomaly column
-  return(m[,c(2,3,1,4,5,9,8)])
+  return(m[,c(2,3,1,4,5,6,10,9)])
 })
 
 temp <- do.call("rbind", temp)
 
+# Define the DO column names that need to be grabbed from the bad data identified across all sensors.
+do_col_names <- c('site', 'sensor_number', 'datetime', 'do_conc', 'do_temp', 'do_sat')
+
 # Known bad data. Data values are replaced by missing data value (-999).
-bad_data_do <- rbind(sensor_service[, c('site', 'sensor_number', 
-                                        'datetime', 'do_conc', 'do_temp')],
-                     cable_fault[, c('site', 'sensor_number', 
-                                     'datetime', 'do_conc', 'do_temp')])
+bad_data_do <- rbind(sensor_service[, do_col_names],
+                     cable_fault[, do_col_names])
 
 bad_data_do$do_conc      <- -999
 bad_data_do$do_temp      <- -999
@@ -533,16 +534,12 @@ bad_data_do$do_temp_flag <- NA
 # Compile and flag questionable data
 
 # Casc silt receives flag 2
-casc_silt_do           <- casc_silt[, c('site','sensor_number','datetime',
-                                          'do_conc','do_temp')]
+casc_silt_do              <- casc_silt[, do_col_names]
 casc_silt_do$do_conc_flag <- 2
 casc_silt_do$do_temp_flag <- 2
 
 # All other questionable data gets flag 1
-flag_data_do <- rbind(s01_glitch[, c('site','sensor_number','datetime',
-                                       'do_conc','do_temp')],
-                      s06_glitch[, c('site','sensor_number','datetime',
-                                       'do_conc','do_temp')],
+flag_data_do <- rbind(s01_glitch[, do_col_names], s06_glitch[, do_col_names],
                       anom_zeros_temp, anom_zeros_conc, anom_high_do, s09_glitch)
 
 flag_data_do$do_conc_flag <- 1
@@ -554,8 +551,148 @@ compiled_do_data <- rbind(temp, bad_data_do, flag_data_do, casc_silt_do)
 # Order the dataframe by sensor number then by datetime
 compiled_do_data <- compiled_do_data[with(compiled_do_data, order(sensor_number, datetime)),]
 
+#######################################################
+
 # Calculate the DO saturation (Bob's method)
-compiled_do_data$do_sat <- -1
+
+# Water density of air saturated water. From Paterson and Morris 1994, Meterologia
+
+watdens <- function(temp){
+
+t <- temp
+
+A  <-  7.0132e-5
+B  <-  7.926295e-3 
+C  <- -7.575477e-5 
+D  <-  7.314701e-7
+E  <- -3.596363e-9
+to <-  3.9818
+
+dens <- (999.97358- (A*(t-to) + B*(t-to)^2 + C*(t-to)^3 + D*(t-to)^4+E*(t-to)^5))
+        - 4.873e-3 + 1.708e-4*t - 3.108e-6*t^2
+dens/1000
+
+}
+
+dosat <- function(temp, bp) {
+
+  u  <- 10^(8.10765-(1750.286/(235+temp)))
+  ts <- log((298.15-temp) / (273.15 + temp))
+  a0 <-  5.80871
+  a1 <-  3.20291
+  a2 <-  4.17887
+  a3 <-  5.1006
+  a4 <- -9.86643e-2
+  a5 <-  3.88767
+
+  u <- 10^(8.10765 - (1750.286/(235 + temp)))
+
+  sato <- (exp(a0 + a1*ts + a2*ts^2 + a3*ts^3 + a4*ts^4) + a5*ts^5)*
+          ((bp - u)/(760 - u))
+
+  watdens(temp)*sato*(31.9988/1000)  # Converts umol/kg to mg/L
+
+}
+
+# Load the BP data from the local met station, merge into the DO data
+ha_met <- read.csv("./Data/HA_Met_Data.csv", header = TRUE, stringsAsFactors = FALSE)
+
+ha_met$datetime <- as.POSIXct(ha_met$datetime)
+
+sat_df <- merge(compiled_do_data, ha_met[,c('datetime', 'BP_mmHg')], by = 'datetime', all.x = TRUE)
+
+sat_df$sat_do_conc <- dosat(sat_df$do_temp, sat_df$BP_mmHg)
+
+sat_df$do_sat_man_calc <- sat_df$do_conc/sat_df$sat_do_conc * 100
+
+# For cases when there is no BP data from the local met station, use the instrument's internally calculated DO saturatation (which is based on the BP at the last calibration point). Make a flag column to indicate this.
+
+# Merge the instrument calculated DO saturation into the df
+# This is increasing the number of rows in the DF, but I have no idea which rows.
+# test <- merge(sat_df, ha_water[,c('datetime', 'sensor_number','do_sat')], by = c('datetime', 'sensor_number'))
+
+# This fails for cases when the flag column is NA
+sat_df$do_sat_flag <- NULL
+for(i in 1:nrow(sat_df)){
+  # If there is no BP, use the do_sat measurement from the instrument
+  # Flag 4 indicates that this is an instrument calculated DO saturatation measurement
+  if(is.na(sat_df$BP_mmHg[i])){
+    sat_df$do_sat_flag[i] <- 5
+    sat_df$do_sat[i]      <- sat_df$do_sat[i]
+    
+  # If either the conc or temp are bad data (-999), then the sat data is bad 
+  } else if(sat_df$do_conc[i] == -999 | sat_df$do_temp[i] == -999){
+    sat_df$do_sat[i]      <- -999
+    sat_df$do_sat_flag[i] <- NA
+    
+  # If both conc and temp flags are NA, then saturated % DO is okay
+  # (bad data are accounted for above)
+  } else if(is.na(sat_df$do_conc_flag[i]) & is.na(sat_df$do_temp_flag[i])){
+    sat_df$do_sat_flag[i] <- 4
+    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
+   
+  # If there is a flag for the DO concentration or temperature, apply that 
+  # same flag to the DO % saturation column  
+  } else if(sat_df$do_conc_flag[i] == 1 | sat_df$do_temp_flag[i] == 1){
+    sat_df$do_sat_flag[i] <- 1
+    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
+  } else if(sat_df$do_conc_flag[i] == 2 | sat_df$do_temp_flag[i] == 2){
+    sat_df$do_sat_flag[i] <- 1
+    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
+ 
+  # In all other cases, use the manually calculated do % saturation  
+  } else {
+    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
+    sat_df$do_sat_flag[i] <- 4
+  }
+}
+
+
+# Think about this in terms of when a do_sat value calculated by the instrument should be overwritten by the manually calculated do % saturation.
+sat_df$do_sat_flag <- NULL
+for(i in 1:nrow(sat_df)){
+  if(sat_df$do_conc[i] == -999 | sat_df$do_temp[i] == -999){
+    sat_df$do_sat_flag[i] <- NA
+    sat_df$do_sat[i]      <- -999
+    
+  } else if(is.na(sat_df$do_conc_flag[i]) & is.na(sat_df$do_temp_flag[i])){
+    sat_df$do_sat_flag[i] <- 4
+    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
+  
+  } else if(sat_df$do_conc_flag[i] == 1 | sat_df$do_temp_flag[i] == 1){
+    sat_df$do_sat_flag[i] <- 1
+    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
+  } else if(sat_df$do_conc_flag[i] == 2 | sat_df$do_temp_flag[i] == 2){
+    sat_df$do_sat_flag[i] <- 2
+    sat_df$do_sat[i]      <- sat_df$do_sat_man_calc[i]
+  } else {
+    sat_df$do_sat_flag[i] <- 5
+  }
+  print(i)
+}
+
+# When the BP is NA, use the instrument calculated do % saturation
+sat_df$do_sat_comp <- sat_df$do_sat_man_calc
+for(i in 1:nrow(sat_df)){
+  if(is.na(sat_df$BP_mmHg[i])){
+    sat_df$do_sat_comp[i] <- sat_df$do_sat[i]
+  } else {}
+  print(i)
+}
+
+# Most values will be calculated based on the measured BP, when available
+sat_df$do_sat_flag <- 4
+# In cases that BP is missing, I used the instrument calculated do_sat
+sat_df$do_sat_flag[is.na(sat_df$BP_mmHg)] <- 5
+# In cases that there is bad data, put NA for consistency with conc and temp
+sat_df$do_sat_flag[which(sat_df$do_conc == -999 | sat_df$do_temp == -999)] <- -999
+# In cases where data are flagged with a 1 or 2, use this flag
+sat_df$do_sat_flag[which(sat_df$do_conc_flag == 1 | sat_df$do_temp_flag == 1)] <- 1
+sat_df$do_sat_flag[which(sat_df$do_conc_flag == 2 | sat_df$do_temp_flag == 2)] <- 2
+
+
+
+    
 
 # Rearrange column order
 compiled_do_data <- compiled_do_data[, c(1:4,8,5:7)]
