@@ -1446,15 +1446,66 @@ temp <- merge(temp, secondary_low_data[,c('sensor_number','datetime','level_m_fl
 # Rearrange columns
 temp <- temp[,c(3,1,2,4,5,7,6)]
 
-# Bind all flagged, anomalous zeros, and bad data
-compiled_level_data <- rbind(temp, sensor_service_level, 
-                             flag_data_level, sensor08_anomaly, casc_silt_level)
-
-# Order the dataframe by sensor number then by datetime
-compiled_level_data <- compiled_level_data[with(compiled_level_data, order(sensor_number, datetime)),]
+# Bind all flagged and anomalous data
+compiled_level_data <- rbind(temp, flag_data_level, sensor08_anomaly, casc_silt_level)
 
 # Convert the water level data from depth to sensor to length from ground surface to water surface (water table relative to ground surface: positive for above ground and negative for below ground).
 
+# Load the well location and elevation details
+ha_details <- read.csv('./Data/Nyack_water_sensor_details.csv', header = T,
+                       stringsAsFactors = F)
+
+# The function will be different for the groundwater wells and the surface water wells because the distance between the sensor and the wellend is from the top of the well for groundwater and the base of the well for surface water.
+
+# For groundwater
+# dr - raw level data, distance between sensor and water surface
+# dg - distance between wellhead and ground surface
+# dn - distance between wellhead and sensor
+# dw - distance of water surface below ground surface (negative number when below ground)
+
+# For surface water
+# dr - raw level data, distance between sensor and water surface
+# dg - distance between well bottom and ground surface
+# dn - distance between well bottom and sensor
+# dw - distance of water surface above ground surface (positive number when above ground)
+
+compiled_level_data$sensor_number <- as.integer(compiled_level_data$sensor_number)
+
+# Merge the depth details into the compiled level data
+level_calc <- merge(compiled_level_data, ha_details[,c(1:3,6:8)], 
+                    by = c('site', 'sensor_number'), all.x = TRUE)
+type <- level_calc$type
+
+dr <- level_calc$level_m
+dg <- level_calc$wellend_to_ground
+dn <- level_calc$wellend_to_sensor
+dw <- NULL
+
+for(i in 1:length(type)){
+  if(type[i] == 'groundwater'){
+    dw[i] <- -(dn[i] - dr[i] - dg[i])
+  } else {
+    dw[i] <- dn[i] + dr[i] + dg[i]
+  }
+  print(i)
+}
+
+level_calc$water_depth <- dw
+
+# Merge the water depth data back into the compiled df
+compiled_level_data <- merge(compiled_level_data, level_calc[,c('sensor_number', 'datetime', 'water_depth')], by = c('sensor_number', 'datetime'), all.x = TRUE)
+
+# Rearrange the order of columns and remove the raw level_m column
+compiled_level_data <- compiled_level_data[,c(3,1,2,8,5:7)]
+
+# Rename the column
+colnames(compiled_level_data)[4] <- 'level_m'
+
+# Bind bad data
+compiled_level_data <- rbind(compiled_level_data, sensor_service_level)
+
+# Order the dataframe by sensor number then by datetime
+compiled_level_data <- compiled_level_data[with(compiled_level_data, order(sensor_number, datetime)),]
 
 # Write the dataframe to a csv
 write.csv(compiled_level_data, './Data/Nyack_level_cleaned.csv', row.names = FALSE, quote = FALSE)
