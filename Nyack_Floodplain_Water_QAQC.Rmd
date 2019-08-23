@@ -1510,6 +1510,9 @@ colnames(compiled_level_data)[4] <- 'level_m'
 # Bind bad data
 compiled_level_data <- rbind(compiled_level_data, sensor_service_level)
 
+# Remove the NA data for level_m and level_temp
+compiled_level_data[is.na(compiled_level_data$level_m), c('level_m', 'level_temp')] <- c(-999, -999)
+
 # Order the dataframe by sensor number then by datetime
 compiled_level_data <- compiled_level_data[with(compiled_level_data, order(sensor_number, datetime)),]
 
