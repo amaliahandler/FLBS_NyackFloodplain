@@ -614,15 +614,21 @@ for(i in 1:nrow(sat_df)){
   print(i)
 }
 
+# When the concentration and temperature are bad (-999), make the saturated do (-999)
+sat_df$do_sat_comp[which(sat_df$do_conc == -999 | sat_df$do_temp == -999)] <- -999
+
 # Most values will be calculated based on the measured BP, when available
 sat_df$do_sat_flag <- 4
 # In cases that BP is missing, I used the instrument calculated do_sat
 sat_df$do_sat_flag[is.na(sat_df$BP_mmHg)] <- 5
 # In cases that there is bad data, put NA for consistency with conc and temp
-sat_df$do_sat_flag[which(sat_df$do_conc == -999 | sat_df$do_temp == -999)] <- -999
+sat_df$do_sat_flag[which(sat_df$do_conc == -999 | sat_df$do_temp == -999)] <- NA
 # In cases where data are flagged with a 1 or 2, use this flag
 sat_df$do_sat_flag[which(sat_df$do_conc_flag == 1 | sat_df$do_temp_flag == 1)] <- 1
 sat_df$do_sat_flag[which(sat_df$do_conc_flag == 2 | sat_df$do_temp_flag == 2)] <- 2
+
+# Strange that one row in the df has NaN value for do_conc
+compiled_do_data[is.na(compiled_do_data$do_conc), c('do_conc', 'do_sat_comp')] <- c(0,0) 
 
 # Rearrange column order
 compiled_do_data <- sat_df[, c(2,3,1,4,5,12,7,8,13)]
