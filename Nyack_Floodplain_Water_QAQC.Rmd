@@ -1035,7 +1035,7 @@ temp <- lapply(seq(ha_cond_list), function(i){
 # Mark, compile the bad data
 sensor_service_cond <- sensor_service[, c('site','sensor_number','datetime','cond','cond_temp','ct')]
 
-bad_data_cond <- rbind(sensor_service_cond, s09_bad_data)
+bad_data_cond <- rbind(sensor_service_cond, s09_bad_data, na_cond)
 
 bad_data_cond$cond      <- -999
 bad_data_cond$ct        <- -999
@@ -1057,7 +1057,7 @@ flag_data_cond <- rbind(s01_glitch[, c('site','sensor_number','datetime',
                                        'cond','cond_temp','ct')],
                         s06_glitch[, c('site','sensor_number','datetime',
                                        'cond','cond_temp','ct')],
-                        s02_glitch, s08_glitch, zero_cond, na_cond, anom_low_cond)
+                        s02_glitch, s08_glitch, zero_cond, anom_low_cond)
 
 flag_data_cond$cond_flag      <- 1
 flag_data_cond$cond_temp_flag <- 1
