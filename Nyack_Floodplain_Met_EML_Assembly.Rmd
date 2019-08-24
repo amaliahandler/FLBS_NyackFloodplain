@@ -1,0 +1,101 @@
+---
+title: "Nyack_Floodplain_Met_EML_Assembly"
+author: "Amalia Handler"
+date: "8/23/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+This script uses the EML Assemblyline to create the metadata associated with the RiverNet meterological data.
+
+```{r}
+# Install EML assemblyline from GitHub
+# remotes::install_github("EDIorg/EMLassemblyline")
+
+# Load packages
+library(EMLassemblyline)
+
+# Template a data package directory
+# Note that this script is part of an R project and defaults to the project directory
+template_directories(
+  path = '.',
+  dir.name = 'Nyack_Met_EML'
+)
+
+# View directory contents (folders to hold the EML objects)
+dir('./Nyack_Met_EML')
+
+# Confirm that the templates directory is empty
+dir('./Nyack_Met_EML/metadata_templates')
+
+# Create templates for core metadata
+template_core_metadata(
+  path = './Nyack_Met_EML/metadata_templates',
+  license = 'CC0'
+)
+
+# Confirm that the templates core metadata files are now present
+dir('./Nyack_Met_EML/metadata_templates')
+
+# Add the compiled met data to the directory
+file.copy(from = './Data/Nyack_met_data.csv', 
+          to   = './Nyack_Met_EML/data_objects')
+
+# Confirm that the files are present in the EML directory
+dir('./Nyack_Met_EML/data_objects')
+
+ # Template table attributes for each table
+template_table_attributes(
+  path = './Nyack_Met_EML/metadata_templates',
+  data.path = './Nyack_Met_EML/data_objects',
+  data.table = c('Nyack_met_data.csv')
+)
+
+# Table attributes templates are now present
+dir('./Nyack_Met_EML/metadata_templates')
+
+# At this point, manually edit the variable types in the attribute files.
+# Easiest way to do this is to open the attribute tables in Excel for editing. 
+# Check especially for categorical and datetime variables as sometimes these are attributed as numeric or factors. Correctly identifying the categorical varaibles is very important before proceeding to the next step.
+
+# These two lines open a searchable window in R Studio with the library of units
+# The only way to ensure that the units match perfectly is to copy/paste. Spelling errors will cause the validation process to state that you have custom units even if all variables are can be found in the unit library.
+standardUnits <- EML::get_unitList()
+View(standardUnits$units)
+
+# There are no categorical variables in this case, so ignore this step.
+# Template categorical variables
+# template_categorical_variables(
+#   path = './Nyack_Met_EML/metadata_templates',
+#   data.path = './Nyack_Met_EML/data_objects'
+# )
+
+
+# At this point, manually edit the abstract, additional info, custom units, keywords, methods, and personnel files in the metadat_templates. This is most easily done by composing text in a text editor and copying into the files in the metadata_templates folder. Only proceed to the net step once this is completed.
+
+# For keywords, see the LTER Controlled Vocabulary Library: https://vocab.lternet.edu/vocab/vocab/index.php
+
+
+# This step constructs the EML document
+make_eml(
+  path = './Nyack_Met_EML/metadata_templates',
+  data.path = './Nyack_Met_EML/data_objects',
+  eml.path = './Nyack_Met_EML/eml',
+  dataset.title = 'Nyack Floodplain RiverNet meteorlogical and soil data in Northwest Montana, USA, 2012-2019',
+  temporal.coverage = c('2012-05-15', '2019-06-25'),
+  geographic.description = 'Nyack, Montana, USA',
+  geographic.coordinates = c('48.4699178', '113.8346032','48.4699178', '113.8346032'),
+  maintenance.description = 'ongoing',
+  data.table = c('Nyack_met_data.csv'),
+  data.table.description = c('Meteorlogical data'),
+  user.id = 'amaliahandler',
+  user.domain = 'EDI',
+  package.id = 'edi.312.2'
+)
+
+# View directory
+
+dir('./Nyack_Met_EML/eml')
+
+
+```

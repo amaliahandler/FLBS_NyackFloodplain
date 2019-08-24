@@ -48,7 +48,7 @@ file.copy(from = './Data/Nyack_cond_cleaned.csv',
 file.copy(from = './Data/Nyack_level_cleaned.csv', 
           to   = './Nyack_Water_EML/data_objects')
 
-file.copy(from = './Data/Nyack_water_sensor_location.csv', 
+file.copy(from = './Data/Nyack_water_sensor_details.csv', 
           to   = './Nyack_Water_EML/data_objects')
 
 # Confirm that the files are present in the EML directory
@@ -61,7 +61,7 @@ template_table_attributes(
   data.table = c('Nyack_do_cleaned.csv', 
                  'Nyack_cond_cleaned.csv',
                  'Nyack_level_cleaned.csv',
-                 'Nyack_water_sensor_location.csv')
+                 'Nyack_water_sensor_details.csv')
 )
 
 # Table attributes templates are now present
@@ -87,7 +87,7 @@ template_categorical_variables(
 template_geographic_coverage(
   path = './Nyack_Water_EML/metadata_templates',
   data.path = './Nyack_Water_EML/data_objects',
-  data.table = 'Nyack_water_sensor_location.csv',
+  data.table = 'Nyack_water_sensor_details.csv',
   site.col = 'site',
   lat.col = 'latitude',
   lon.col = 'longitude'
@@ -108,16 +108,16 @@ make_eml(
   geographic.description = 'Nyack, Montana, USA',
   geographic.coordinates = c('48.487', '113.850','48.444', '113.808'),
   maintenance.description = 'ongoing',
-  data.table = c('Nyack_do_cleaned.csv', 'Nyack_cond_cleaned.csv', 'Nyack_level_cleaned.csv', 'Nyack_water_sensor_location.csv'),
-  data.table.description = c('Dissolved oxygen data data', 'Conductivity data', 'Water level data', 'Sensor location data'),
+  data.table = c('Nyack_do_cleaned.csv', 'Nyack_cond_cleaned.csv', 'Nyack_level_cleaned.csv', 'Nyack_water_sensor_details.csv'),
+  data.table.description = c('Dissolved oxygen data data', 'Conductivity data', 'Water level data', 'Sensor details'),
   user.id = 'amaliahandler',
   user.domain = 'EDI',
-  package.id = 'edi.311.1'
+  package.id = 'edi.311.2'
 )
 
 # View directory
 
-dir('./pkg_301/eml')
+dir('./Nyack_Water_EML/eml')
 
 
 ```
