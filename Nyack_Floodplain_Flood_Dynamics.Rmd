@@ -1,0 +1,150 @@
+---
+title: "Nyack_Floodplain_Flood_Dynamics"
+author: "Amalia Handler"
+date: "1/24/2020"
+output: 
+  html_document: 
+    keep_md: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+This script is used to investigate the influence of Middle Fork of the Flathead River floods on the Nyack Floodplain. The data (temperature, dissolved oxygen, conductivity, and water level) include six groundwater wells and three surface water wells.
+
+Note that the data used here has been QAQC'ed through removal of bad data associated with sensor error and servicing using the script titled "Nyack_Floodplain_Water_QAQC.Rmd" available on Amalia Handler's GitHub repository amaliahandler/FLBS_NyackFloodplain.
+
+
+```{r}
+# Load packages
+
+# Load data
+options(stringsAsFactors = FALSE)
+cond  <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
+do    <- read.csv('./Data/Nyack_do_cleaned.csv', header = TRUE)
+level <- read.csv('./Data/Nyack_level_cleaned.csv', header = TRUE)
+
+```
+
+
+Visualize the how floods on the mainstem influence the groundwater wells.
+
+
+```{r}
+
+# Water level flood data
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+
+# Remove questionable and bad data
+level <- level[-which(level$level_m == -999 | level$level_m_flag == 1 | level$level_m_flag == 2),]
+
+# Convert datetime to POSIX variable type
+level$datetime <- as.POSIXct(level$datetime, tz = "MST")
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+sensor <- c(6,9,5,7,4,1,3)
+rank   <- c(1:7)
+rank   <- data.frame(sensor, rank)
+
+level  <- merge(level, rank, by.x = "sensor_number", by.y = "sensor")
+
+# Subset the water level data to only include the sensors for this analysis
+level <- level[level$sensor_number %in% sensor,]
+
+# Break the df into a list based on rank
+level <- split(level, f = as.factor(level$rank))
+
+# Make the names the sensor number
+names(level) <- sensor
+
+# Find the latest start date for each sensor
+min_dates <- lapply(level, function(x){min(x$datetime)})
+
+latest_start <- max(do.call("c", min_dates))
+
+# Subset each sensor such that all have the same start datetime
+level <- lapply(level, function(x){x[x$datetime >= latest_start,]})
+
+# Make figure of entire time series
+y_label   <- "Level (m)"
+
+png("./Figures/Flood Figures/GW Level by Rank.png", units = "in", 
+    width = 8, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level, function(x){
+  plot(x$datetime, x$level_m, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
+# Make figure of year to year data
+year      <- "2019"
+start     <- as.POSIXct(paste0(year, "-01-01"))
+end       <- as.POSIXct(paste0(year, "-12-31"))
+y_label   <- "Level (m)"
+
+png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
+    units = "in", width = 8, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level, function(x){
+  plot(x$datetime[x$datetime >= start & x$datetime <= end], 
+       x$level_m[x$datetime >= start & x$datetime <= end], 
+       xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
+# Add a vertical line for the time of max discharge for the year
+year      <- "2015"
+start     <- as.POSIXct(paste0(year, "-01-01"))
+end       <- as.POSIXct(paste0(year, "-12-31"))
+y_label   <- "Level (m)"
+
+temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
+
+max_level <- max(temp$level_m)
+max_dtime <- temp$datetime[match(max_level, temp$level_m)]
+
+png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
+    units = "in", width = 8, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level, function(x){
+  plot(x$datetime[x$datetime >= start & x$datetime <= end], 
+       x$level_m[x$datetime >= start & x$datetime <= end], 
+       xlab = " ", ylab = y_label, 
+       xlim = c(start, end), xaxs = 'i', yaxs = 'i',
+       cex.lab = 2, cex.axis = 2, pch = 20)
+  
+  abline(v = max_dtime)
+  
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
+
+```
+
+
