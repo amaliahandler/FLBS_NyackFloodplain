@@ -30,7 +30,6 @@ Visualize the how floods on the mainstem influence the groundwater wells.
 
 
 ```{r}
-
 # Water level flood data
 # Bad data: value = -999
 # Questionable data flags: 1 (questionable), 2 (silt in well)
@@ -87,46 +86,303 @@ lapply(level, function(x){
 dev.off()
 
 # Make figure of year to year data
-year      <- "2019"
-start     <- as.POSIXct(paste0(year, "-01-01"))
-end       <- as.POSIXct(paste0(year, "-12-31"))
-y_label   <- "Level (m)"
-
-# Standardize the y axis limits based on the CASC sensor
-# Find the max and min of the water level data for CASC
-temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
-max_level <- max(temp$level_m)
-min_level <- min(temp$level_m)
-casc_diff <- (max_level - min_level) / 2
-
-png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
-    units = "in", width = 8, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(level, function(x){
-  temp      <- x[x$datetime >= start & x$datetime <= end,]
+for(i in 2013:2019){
+  year      <- as.character(i)
+  start     <- as.POSIXct(paste0(year, "-01-01"))
+  end       <- as.POSIXct(paste0(year, "-12-31"))
+  y_label   <- "Level (m)"
+  
+  # Standardize the y axis limits based on the CASC sensor
+  # Find the max and min of the water level data for CASC
+  temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
   max_level <- max(temp$level_m)
   min_level <- min(temp$level_m)
-  mid_point <- (max_level - min_level) / 2
-  ylim_up   <- (min_level + mid_point) + casc_diff
-  ylim_lo   <- (min_level + mid_point) - casc_diff
+  casc_diff <- (max_level - min_level) / 2
   
-  plot(temp$datetime, temp$level_m, 
-       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-       ylim = c(ylim_lo, ylim_up),
-       cex.lab = 2, cex.axis = 2, pch = 20)
-
-  title(paste(x[1,2], x[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
+  png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
+      units = "in", width = 8, height = 12, res = 100, bg = "transparent")
   
-  box(lwd = 2)
-  })
-
-dev.off()
-
+  par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+  
+  lapply(level, function(x){
+    temp      <- x[x$datetime >= start & x$datetime <= end,]
+    max_level <- max(temp$level_m)
+    min_level <- min(temp$level_m)
+    mid_point <- (max_level - min_level) / 2
+    ylim_up   <- (min_level + mid_point) + casc_diff
+    ylim_lo   <- (min_level + mid_point) - casc_diff
+    
+    plot(temp$datetime, temp$level_m, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20)
+  
+    title(paste(x[1,2], x[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+    })
+  
+  dev.off()
+  print(i)
+}
 
 
 ```
 
+
+Make a set of figures for the DO temperature sensor
+
+
+```{r}
+do    <- read.csv('./Data/Nyack_do_cleaned.csv', header = TRUE)
+
+# Temperature flood data from the DO sensor
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+
+# Remove questionable and bad data
+do <- do[-which(do$do_temp == -999 | do$do_temp_flag == 1 | do$do_temp_flag == 2),]
+
+# Convert datetime to POSIX variable type
+do$datetime <- as.POSIXct(do$datetime, tz = "MST")
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+sensor <- c(6,9,5,7,4,1,3)
+rank   <- c(1:7)
+rank   <- data.frame(sensor, rank)
+
+do  <- merge(do, rank, by.x = "sensor_number", by.y = "sensor")
+
+# Subset the water level data to only include the sensors for this analysis
+do <- do[do$sensor_number %in% sensor,]
+
+# Break the df into a list based on rank
+do <- split(do, f = as.factor(do$rank))
+
+# Make the names the sensor number
+names(do) <- sensor
+
+# Testing
+i <- 2013
+x <- level$`6`
+
+
+# Make figure of year to year data
+for(i in 2013:2019){
+  year      <- as.character(i)
+  start     <- as.POSIXct(paste0(year, "-01-01"))
+  end       <- as.POSIXct(paste0(year, "-12-31"))
+  y_label   <- "Temp (C)"
+  
+  # Standardize the y axis limits based on the CASC sensor
+  # Find the max and min of the water level data for CASC
+  temp      <- do$`6`[do$`6`$datetime >= start & do$`6`$datetime <= end,]
+  max_temp  <- max(temp$do_temp)
+  min_temp  <- min(temp$do_temp)
+  casc_diff <- (max_temp - min_temp) / 2
+  
+  png(paste0("./Figures/Flood Figures/", year,"_GW Temp by Rank.png"), 
+      units = "in", width = 8, height = 12, res = 100, bg = "transparent")
+  
+  par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+  
+  lapply(do, function(x){
+    temp      <- x[x$datetime >= start & x$datetime <= end,]
+    max_temp <- max(temp$do_temp)
+    min_temp <- min(temp$do_temp)
+    mid_point <- (max_temp - min_temp) / 2
+    ylim_up   <- (min_temp + mid_point) + casc_diff
+    ylim_lo   <- (min_temp + mid_point) - casc_diff
+    
+    plot(temp$datetime, temp$do_temp, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20)
+  
+    title(paste(x[1,2], x[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+    })
+  
+  dev.off()
+  print(i)
+}
+
+```
+
+
+
+
+Make a set of figures for the DO saturation sensor
+
+
+
+
+```{r}
+do    <- read.csv('./Data/Nyack_do_cleaned.csv', header = TRUE)
+
+# DO saturation flood data
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+
+# Remove questionable and bad data
+do <- do[-which(do$do_sat == -999 | do$do_sat_flag == 1 | do$do_sat_flag == 2),]
+
+# Convert datetime to POSIX variable type
+do$datetime <- as.POSIXct(do$datetime, tz = "MST")
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+sensor <- c(6,9,5,7,4,1,3)
+rank   <- c(1:7)
+rank   <- data.frame(sensor, rank)
+
+do  <- merge(do, rank, by.x = "sensor_number", by.y = "sensor")
+
+# Subset the water level data to only include the sensors for this analysis
+do <- do[do$sensor_number %in% sensor,]
+
+# Break the df into a list based on rank
+do <- split(do, f = as.factor(do$rank))
+
+# Make the names the sensor number
+names(do) <- sensor
+
+# Testing
+i <- 2013
+x <- do$`6`
+
+# Make figure of year to year data
+for(i in 2013:2019){
+  year      <- as.character(i)
+  start     <- as.POSIXct(paste0(year, "-01-01"))
+  end       <- as.POSIXct(paste0(year, "-12-31"))
+  y_label   <- "DO Sat (%)"
+  
+  # Standardize the y axis limits based on the CASC sensor
+  # Find the max and min of the water level data for CASC
+  temp      <- do$`6`[do$`6`$datetime >= start & do$`6`$datetime <= end,]
+  max_sat   <- max(temp$do_sat)
+  min_sat   <- min(temp$do_sat)
+  casc_diff <- (max_sat - min_sat) / 2
+  
+  png(paste0("./Figures/Flood Figures/", year,"_GW DO Sat by Rank.png"), 
+      units = "in", width = 8, height = 12, res = 100, bg = "transparent")
+  
+  par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+  
+  lapply(do, function(x){
+    temp      <- x[x$datetime >= start & x$datetime <= end,]
+    max_sat   <- max(temp$do_sat)
+    min_sat   <- min(temp$do_sat)
+    mid_point <- (max_sat - min_sat) / 2
+    ylim_up   <- (min_sat + mid_point) + casc_diff
+    ylim_lo   <- (min_sat + mid_point) - casc_diff
+    
+    plot(temp$datetime, temp$do_sat, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20)
+  
+    title(paste(x[1,2], x[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+    })
+  
+  dev.off()
+  print(i)
+}
+
+```
+
+
+Make a set of figures for the conductivity
+
+
+```{r}
+cond  <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
+
+# Conductivity flood data
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+
+# Remove questionable and bad data
+cond <- cond[-which(cond$cond == -999 | cond$cond_flag == 1 | cond$cond_flag == 2),]
+
+# Convert datetime to POSIX variable type
+cond$datetime <- as.POSIXct(cond$datetime, tz = "MST")
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+sensor <- c(6,9,5,7,4,1,3)
+rank   <- c(1:7)
+rank   <- data.frame(sensor, rank)
+
+cond   <- merge(cond, rank, by.x = "sensor_number", by.y = "sensor")
+
+# Subset the water level data to only include the sensors for this analysis
+cond <- cond[cond$sensor_number %in% sensor,]
+
+# Break the df into a list based on rank
+cond <- split(cond, f = as.factor(cond$rank))
+
+# Make the names the sensor number
+names(cond) <- sensor
+
+# Testing
+i <- 2013
+x <- cond$`6`
+
+# Make figure of year to year data
+for(i in 2013:2019){
+  year      <- as.character(i)
+  start     <- as.POSIXct(paste0(year, "-01-01"))
+  end       <- as.POSIXct(paste0(year, "-12-31"))
+  y_label   <- "Cond (mS)"
+  
+  # Standardize the y axis limits based on the sensor with the largest range of values
+  dat_range <- sapply(cond, function(x){
+                  temp <- x[x$datetime >= start & x$datetime <= end,]
+                  dat_range <- max(temp$cond) - min(temp$cond)
+                })
+  
+  max_diff  <- max(dat_range) / 2
+
+  png(paste0("./Figures/Flood Figures/", year,"_GW Cond by Rank.png"), 
+      units = "in", width = 8, height = 12, res = 100, bg = "transparent")
+  
+  par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+  
+  lapply(cond, function(x){
+    temp      <- x[x$datetime >= start & x$datetime <= end,]
+    max_cond  <- max(temp$cond)
+    min_cond  <- min(temp$cond)
+    mid_point <- (max_cond - min_cond) / 2
+    ylim_up   <- (min_cond + mid_point) + max_diff
+    ylim_lo   <- (min_cond + mid_point) - max_diff
+    
+    plot(temp$datetime, temp$cond, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20)
+  
+    title(paste(x[1,2], x[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+    })
+  
+  dev.off()
+  print(i)
+}
+
+```
 
