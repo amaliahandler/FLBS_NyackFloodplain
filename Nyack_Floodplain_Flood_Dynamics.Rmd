@@ -92,35 +92,12 @@ start     <- as.POSIXct(paste0(year, "-01-01"))
 end       <- as.POSIXct(paste0(year, "-12-31"))
 y_label   <- "Level (m)"
 
-png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
-    units = "in", width = 8, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(level, function(x){
-  plot(x$datetime[x$datetime >= start & x$datetime <= end], 
-       x$level_m[x$datetime >= start & x$datetime <= end], 
-       xlab = " ", ylab = y_label, 
-       cex.lab = 2, cex.axis = 2, pch = 20)
-
-  title(paste(x[1,2], x[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  
-  box(lwd = 2)
-  })
-
-dev.off()
-
-# Add a vertical line for the time of max discharge for the year
-year      <- "2015"
-start     <- as.POSIXct(paste0(year, "-01-01"))
-end       <- as.POSIXct(paste0(year, "-12-31"))
-y_label   <- "Level (m)"
-
+# Standardize the y axis limits based on the CASC sensor
+# Find the max and min of the water level data for CASC
 temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
-
 max_level <- max(temp$level_m)
-max_dtime <- temp$datetime[match(max_level, temp$level_m)]
+min_level <- min(temp$level_m)
+casc_diff <- (max_level - min_level) / 2
 
 png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
     units = "in", width = 8, height = 12, res = 100, bg = "transparent")
@@ -128,14 +105,18 @@ png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"),
 par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
 
 lapply(level, function(x){
-  plot(x$datetime[x$datetime >= start & x$datetime <= end], 
-       x$level_m[x$datetime >= start & x$datetime <= end], 
-       xlab = " ", ylab = y_label, 
-       xlim = c(start, end), xaxs = 'i', yaxs = 'i',
+  temp      <- x[x$datetime >= start & x$datetime <= end,]
+  max_level <- max(temp$level_m)
+  min_level <- min(temp$level_m)
+  mid_point <- (max_level - min_level) / 2
+  ylim_up   <- (min_level + mid_point) + casc_diff
+  ylim_lo   <- (min_level + mid_point) - casc_diff
+  
+  plot(temp$datetime, temp$level_m, 
+       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+       ylim = c(ylim_lo, ylim_up),
        cex.lab = 2, cex.axis = 2, pch = 20)
-  
-  abline(v = max_dtime)
-  
+
   title(paste(x[1,2], x[1,1], sep = '_'), 
         line = 0.5, cex.main = 2)
   
@@ -143,6 +124,7 @@ lapply(level, function(x){
   })
 
 dev.off()
+
 
 
 ```
