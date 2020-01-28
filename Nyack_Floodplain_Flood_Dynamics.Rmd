@@ -165,11 +165,6 @@ do <- split(do, f = as.factor(do$rank))
 # Make the names the sensor number
 names(do) <- sensor
 
-# Testing
-i <- 2013
-x <- level$`6`
-
-
 # Make figure of year to year data
 for(i in 2013:2019){
   year      <- as.character(i)
@@ -177,12 +172,13 @@ for(i in 2013:2019){
   end       <- as.POSIXct(paste0(year, "-12-31"))
   y_label   <- "Temp (C)"
   
-  # Standardize the y axis limits based on the CASC sensor
-  # Find the max and min of the water level data for CASC
-  temp      <- do$`6`[do$`6`$datetime >= start & do$`6`$datetime <= end,]
-  max_temp  <- max(temp$do_temp)
-  min_temp  <- min(temp$do_temp)
-  casc_diff <- (max_temp - min_temp) / 2
+  # Standardize the y axis limits based on the sensor with the largest range of values
+  dat_range <- sapply(do, function(x){
+                  temp <- x[x$datetime >= start & x$datetime <= end,]
+                  dat_range <- max(temp$do_temp) - min(temp$do_temp)
+                })
+  
+  max_diff  <- max(dat_range) / 2
   
   png(paste0("./Figures/Flood Figures/", year,"_GW Temp by Rank.png"), 
       units = "in", width = 8, height = 12, res = 100, bg = "transparent")
@@ -194,8 +190,8 @@ for(i in 2013:2019){
     max_temp <- max(temp$do_temp)
     min_temp <- min(temp$do_temp)
     mid_point <- (max_temp - min_temp) / 2
-    ylim_up   <- (min_temp + mid_point) + casc_diff
-    ylim_lo   <- (min_temp + mid_point) - casc_diff
+    ylim_up   <- (min_temp + mid_point) + max_diff
+    ylim_lo   <- (min_temp + mid_point) - max_diff
     
     plot(temp$datetime, temp$do_temp, 
          xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
@@ -264,12 +260,13 @@ for(i in 2013:2019){
   end       <- as.POSIXct(paste0(year, "-12-31"))
   y_label   <- "DO Sat (%)"
   
-  # Standardize the y axis limits based on the CASC sensor
-  # Find the max and min of the water level data for CASC
-  temp      <- do$`6`[do$`6`$datetime >= start & do$`6`$datetime <= end,]
-  max_sat   <- max(temp$do_sat)
-  min_sat   <- min(temp$do_sat)
-  casc_diff <- (max_sat - min_sat) / 2
+  # Standardize the y axis limits based on the sensor with the largest range of values
+  dat_range <- sapply(do, function(x){
+                  temp <- x[x$datetime >= start & x$datetime <= end,]
+                  dat_range <- max(temp$do_sat) - min(temp$do_sat)
+                })
+  
+  max_diff  <- max(dat_range) / 2
   
   png(paste0("./Figures/Flood Figures/", year,"_GW DO Sat by Rank.png"), 
       units = "in", width = 8, height = 12, res = 100, bg = "transparent")
@@ -281,8 +278,8 @@ for(i in 2013:2019){
     max_sat   <- max(temp$do_sat)
     min_sat   <- min(temp$do_sat)
     mid_point <- (max_sat - min_sat) / 2
-    ylim_up   <- (min_sat + mid_point) + casc_diff
-    ylim_lo   <- (min_sat + mid_point) - casc_diff
+    ylim_up   <- (min_sat + mid_point) + max_diff
+    ylim_lo   <- (min_sat + mid_point) - max_diff
     
     plot(temp$datetime, temp$do_sat, 
          xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
@@ -383,6 +380,246 @@ for(i in 2013:2019){
   dev.off()
   print(i)
 }
+
+```
+
+
+Visuals of some key representative wells that show the influence of floods
+CASC main channel
+HA02_9, GW sensor closest to the main channel
+HA07_3, GW sensor farthest from the main channel
+
+Show time series for 2014 and 2013-2018 for water level, temperature, DO % saturation, and conductivity
+
+
+```{r}
+cond  <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
+do    <- read.csv('./Data/Nyack_do_cleaned.csv', header = TRUE)
+level <- read.csv('./Data/Nyack_level_cleaned.csv', header = TRUE)
+
+# Remove bad and questionable data
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+cond    <- cond[-which(cond$cond == -999 | cond$cond_flag == 1 | 
+                         cond$cond_flag == 2),]
+do_sat  <- do[-which(do$do_sat == -999 | do$do_sat_flag == 1 | 
+                       do$do_sat_flag == 2),]
+level   <- level[-which(level$level_m == -999 | level$level_m_flag == 1 | 
+                          level$level_m_flag == 2),]
+do_temp <- do[-which(do$do_temp == -999 | 
+                       do$do_temp_flag == 1 | do$do_temp_flag == 2),]
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+rank   <- data.frame(sensor = c(6,9,3), rank = c(1:3))
+
+merge_rank <- function(x){
+  merge(x, rank, by.x = "sensor_number", by.y = "sensor")
+}
+
+cond    <- merge_rank(cond)
+do_sat  <- merge_rank(do_sat)
+do_temp <- merge_rank(do_temp)
+level   <- merge_rank(level)
+
+# Convert datetime to POSIX variable type
+time_to_POSIX <- function(x){
+  as.POSIXct(x$datetime, tz = "MST")
+}
+
+cond$datetime    <- time_to_POSIX(cond)
+do_sat$datetime  <- time_to_POSIX(do_sat)
+level$datetime   <- time_to_POSIX(level)
+do_temp$datetime <- time_to_POSIX(do_temp)
+
+# For ease of looping, rename the key variable for visuals "value"
+colnames(do_temp)[5] <- "value"
+colnames(do_sat)[6]  <- "value"
+colnames(level)[4]   <- "value"
+colnames(cond)[4]    <- "value"
+
+# Break the df into a list based on rank
+list_cenversion <- function(x){
+  split(x, f = as.factor(x$rank))
+}
+
+cond    <- list_cenversion(cond)
+do_sat  <- list_cenversion(do_sat)
+do_temp <- list_cenversion(do_temp)
+level   <- list_cenversion(level)
+
+# Make figure of 2014 data
+# Level over temp on the left
+# DO sat over temp on the right
+year      <- 2014
+start     <- as.POSIXct(paste0(year, "-01-01"))
+end       <- as.POSIXct(paste0(year, "-12-31"))
+y_label   <- ("Level (m)")
+
+# Standardize the y axis limits based on the sensor with the largest range of values
+find_max_diff <- function(list){
+  dat_range <- sapply(list, function(x){
+                temp <- x[x$datetime >= start & x$datetime <= end,]
+                dat_range <- max(temp$value) - min(temp$value)
+              })
+  max_diff  <- max(dat_range) / 2
+}
+
+max_diff_level <- find_max_diff(level)
+max_diff_temp  <- find_max_diff(do_temp)
+max_diff_sat   <- find_max_diff(do_sat)
+max_diff_cond  <- find_max_diff(cond)
+
+# Function to create the plot within each list
+plot_list <- function(list, max_diff, y_label){
+  lapply(list, function(x){
+    temp      <- x[x$datetime >= start & x$datetime <= end,]
+    max_val   <- max(temp$value)
+    min_val   <- min(temp$value)
+    mid_point <- (max_val - min_val) / 2
+    ylim_up   <- (min_cond + mid_point) + max_diff
+    ylim_lo   <- (min_cond + mid_point) - max_diff
+    
+    plot(temp$datetime, temp$value, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20)
+  
+    title(paste(x[1,2], x[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+    })
+}
+
+png(paste0("./Figures/Flood Figures/", year,"_All Variables.png"), 
+    units = "in", width = 14, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(6,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+plot_list(level, max_diff_level, "Level (m)")
+plot_list(do_temp, max_diff_temp, "Temp (C)")
+plot_list(do_sat, max_diff_sat, "DO % Sat")
+plot_list(cond, max_diff_cond, "Level (m)")
+
+dev.off()
+
+y_label <- "Level (m)"
+
+png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_Level.png"), 
+    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level, function(x){
+  temp      <- x[x$datetime >= start & x$datetime <= end,]
+  max_val   <- max(temp$value)
+  min_val   <- min(temp$value)
+  mid_point <- (max_val - min_val) / 2
+  ylim_up   <- min_val + mid_point + max_diff_level
+  ylim_lo   <- min_val + mid_point - max_diff_level
+  
+  plot(temp$datetime, temp$value, 
+       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+       ylim = c(ylim_lo, ylim_up),
+       xlim = c(start, end),
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+y_label <- "Temp (C)"
+
+png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_Temp.png"), 
+    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(do_temp, function(x){
+  temp      <- x[x$datetime >= start & x$datetime <= end,]
+  max_val   <- max(temp$value)
+  min_val   <- min(temp$value)
+  mid_point <- (max_val - min_val) / 2
+  ylim_up   <- min_val + mid_point + max_diff_temp
+  ylim_lo   <- min_val + mid_point - max_diff_temp
+  
+  plot(temp$datetime, temp$value, 
+       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+       ylim = c(ylim_lo, ylim_up),
+       xlim = c(start, end),
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
+
+y_label <- "DO % Sat"
+
+png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_DO Sat.png"), 
+    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(do_sat, function(x){
+  temp      <- x[x$datetime >= start & x$datetime <= end,]
+  max_val   <- max(temp$value)
+  min_val   <- min(temp$value)
+  mid_point <- (max_val - min_val) / 2
+  ylim_up   <- min_val + mid_point + max_diff_sat
+  ylim_lo   <- min_val + mid_point - max_diff_sat
+  
+  plot(temp$datetime, temp$value, 
+       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+       ylim = c(ylim_lo, ylim_up),
+       xlim = c(start, end),
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
+y_label <- "Cond (mS)"
+
+png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_Cond.png"), 
+    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(cond, function(x){
+  temp      <- x[x$datetime >= start & x$datetime <= end,]
+  max_val   <- max(temp$value)
+  min_val   <- min(temp$value)
+  mid_point <- (max_val - min_val) / 2
+  ylim_up   <- min_val + mid_point + max_diff_cond
+  ylim_lo   <- min_val + mid_point - max_diff_cond
+  
+  plot(temp$datetime, temp$value, 
+       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+       ylim = c(ylim_lo, ylim_up),
+       xlim = c(start, end),
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
 
 ```
 
