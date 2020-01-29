@@ -481,20 +481,24 @@ draw_order <- data.frame(df = c(rep(c("level", "cond"), 3),
                          sensor = c(rep(c(6,6,9,9,3,3), 2)),
                          rank = c(rep(c(1,1,2,2,3,3), 2)))
 
+df <- tmp
+max_diff <- max_diff_level
+y_label <- "Level (m)"
+
 # Function to draw each plot
-plot_draw <- function(df, max_diff, y_label){
+plot_draw <- function(df, max_diff, y_label, color){
     temp      <- df[df$datetime >= start & df$datetime <= end,]
     max_val   <- max(temp$value)
     min_val   <- min(temp$value)
     mid_point <- (max_val - min_val) / 2
-    ylim_up   <- (min_cond + mid_point) + max_diff
-    ylim_lo   <- (min_cond + mid_point) - max_diff
+    ylim_up   <- (min_val + mid_point) + max_diff
+    ylim_lo   <- (min_val + mid_point) - max_diff
     
     plot(temp$datetime, temp$value, 
          xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
          ylim = c(ylim_lo, ylim_up),
          xlim = c(start, end),
-         cex.lab = 2, cex.axis = 2, pch = 20)
+         cex.lab = 2, cex.axis = 2, pch = 20, col = color)
   
     title(paste(temp[1,2], temp[1,1], sep = '_'), 
           line = 0.5, cex.main = 2)
@@ -504,7 +508,7 @@ plot_draw <- function(df, max_diff, y_label){
 
 # Create the massive, 6 by 2 plot
 png(paste0("./Figures/Flood Figures/", year,"_GW Comparison All Variables.png"), 
-    units = "in", width = 14, height = 12, res = 100, bg = "transparent")
+    units = "in", width = 14, height = 12, res = 1000, bg = "transparent")
 
 par(mfrow = c(6,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
 
@@ -512,19 +516,19 @@ par(mfrow = c(6,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
 for(i in 1:nrow(draw_order)){
   if(draw_order$df[i] == "level"){
     tmp <- level[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_level, "Level (m)")
+    plot_draw(tmp, max_diff_level, "Level (m)", "black")
     
   } else if(draw_order$df[i] == "cond"){
     tmp <- cond[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_cond, "Cond (mS)")
+    plot_draw(tmp, max_diff_cond, "Cond (mS)", "darkgrey")
     
   } else if(draw_order$df[i] == "do_temp"){
     tmp <- do_temp[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_temp, "Temp (C)")
+    plot_draw(tmp, max_diff_temp, "Temp (C)", "darkblue")
     
   } else{
     tmp <- do_sat[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_sat, "DO % Sat")
+    plot_draw(tmp, max_diff_sat, "DO % Sat", "darkslategrey")
   }
   print(draw_order[i,])
 }
@@ -533,155 +537,46 @@ dev.off()
 
 
 
-# Function to create the plot within each list
-plot_list <- function(list, max_diff, y_label){
-  lapply(list, function(x){
-    temp      <- x[x$datetime >= start & x$datetime <= end,]
-    max_val   <- max(temp$value)
-    min_val   <- min(temp$value)
-    mid_point <- (max_val - min_val) / 2
-    ylim_up   <- (min_cond + mid_point) + max_diff
-    ylim_lo   <- (min_cond + mid_point) - max_diff
-    
-    plot(temp$datetime, temp$value, 
-         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-         ylim = c(ylim_lo, ylim_up),
-         xlim = c(start, end),
-         cex.lab = 2, cex.axis = 2, pch = 20)
-  
-    title(paste(x[1,2], x[1,1], sep = '_'), 
-          line = 0.5, cex.main = 2)
-    
-    box(lwd = 2)
-    })
-}
 
-png(paste0("./Figures/Flood Figures/", year,"_All Variables.png"), 
-    units = "in", width = 14, height = 12, res = 100, bg = "transparent")
+
+# Same type of plot, but for the period between 2013 and 2018
+start     <- as.POSIXct("2013-01-01")
+end       <- as.POSIXct("2018-12-31")
+
+max_diff_level <- find_max_diff(level)
+max_diff_temp  <- find_max_diff(do_temp)
+max_diff_sat   <- find_max_diff(do_sat)
+max_diff_cond  <- find_max_diff(cond)
+
+# Create the massive, 6 by 2 plot
+png(paste0("./Figures/Flood Figures/2013-2018 GW Comparison All Variables.png"), 
+    units = "in", width = 18, height = 12, res = 1000, bg = "transparent")
 
 par(mfrow = c(6,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
 
-plot_list(level, max_diff_level, "Level (m)")
-plot_list(do_temp, max_diff_temp, "Temp (C)")
-plot_list(do_sat, max_diff_sat, "DO % Sat")
-plot_list(cond, max_diff_cond, "Level (m)")
+# Loop to create the plot
+for(i in 1:nrow(draw_order)){
+  if(draw_order$df[i] == "level"){
+    tmp <- level[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_level, "Level (m)", "black")
+    
+  } else if(draw_order$df[i] == "cond"){
+    tmp <- cond[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_cond, "Cond (mS)", "darkgrey")
+    
+  } else if(draw_order$df[i] == "do_temp"){
+    tmp <- do_temp[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_temp, "Temp (C)", "darkblue")
+    
+  } else{
+    tmp <- do_sat[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_sat, "DO % Sat", "darkslategrey")
+  }
+  print(draw_order[i,])
+}
 
 dev.off()
 
-y_label <- "Level (m)"
-
-png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_Level.png"), 
-    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(level, function(x){
-  temp      <- x[x$datetime >= start & x$datetime <= end,]
-  max_val   <- max(temp$value)
-  min_val   <- min(temp$value)
-  mid_point <- (max_val - min_val) / 2
-  ylim_up   <- min_val + mid_point + max_diff_level
-  ylim_lo   <- min_val + mid_point - max_diff_level
-  
-  plot(temp$datetime, temp$value, 
-       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-       ylim = c(ylim_lo, ylim_up),
-       xlim = c(start, end),
-       cex.lab = 2, cex.axis = 2, pch = 20)
-
-  title(paste(x[1,2], x[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  
-  box(lwd = 2)
-  })
-
-y_label <- "Temp (C)"
-
-png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_Temp.png"), 
-    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(do_temp, function(x){
-  temp      <- x[x$datetime >= start & x$datetime <= end,]
-  max_val   <- max(temp$value)
-  min_val   <- min(temp$value)
-  mid_point <- (max_val - min_val) / 2
-  ylim_up   <- min_val + mid_point + max_diff_temp
-  ylim_lo   <- min_val + mid_point - max_diff_temp
-  
-  plot(temp$datetime, temp$value, 
-       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-       ylim = c(ylim_lo, ylim_up),
-       xlim = c(start, end),
-       cex.lab = 2, cex.axis = 2, pch = 20)
-
-  title(paste(x[1,2], x[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  
-  box(lwd = 2)
-  })
-
-dev.off()
-
-
-y_label <- "DO % Sat"
-
-png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_DO Sat.png"), 
-    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(do_sat, function(x){
-  temp      <- x[x$datetime >= start & x$datetime <= end,]
-  max_val   <- max(temp$value)
-  min_val   <- min(temp$value)
-  mid_point <- (max_val - min_val) / 2
-  ylim_up   <- min_val + mid_point + max_diff_sat
-  ylim_lo   <- min_val + mid_point - max_diff_sat
-  
-  plot(temp$datetime, temp$value, 
-       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-       ylim = c(ylim_lo, ylim_up),
-       xlim = c(start, end),
-       cex.lab = 2, cex.axis = 2, pch = 20)
-
-  title(paste(x[1,2], x[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  
-  box(lwd = 2)
-  })
-
-dev.off()
-
-y_label <- "Cond (mS)"
-
-png(paste0("./Figures/Flood Figures/", year,"_3 GW Wells_Cond.png"), 
-    units = "in", width = 6, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(3,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(cond, function(x){
-  temp      <- x[x$datetime >= start & x$datetime <= end,]
-  max_val   <- max(temp$value)
-  min_val   <- min(temp$value)
-  mid_point <- (max_val - min_val) / 2
-  ylim_up   <- min_val + mid_point + max_diff_cond
-  ylim_lo   <- min_val + mid_point - max_diff_cond
-  
-  plot(temp$datetime, temp$value, 
-       xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-       ylim = c(ylim_lo, ylim_up),
-       xlim = c(start, end),
-       cex.lab = 2, cex.axis = 2, pch = 20)
-
-  title(paste(x[1,2], x[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  
-  box(lwd = 2)
-  })
-
-dev.off()
 
 
 ```
