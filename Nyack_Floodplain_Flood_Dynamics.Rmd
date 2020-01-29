@@ -454,7 +454,6 @@ level   <- list_cenversion(level)
 year      <- 2014
 start     <- as.POSIXct(paste0(year, "-01-01"))
 end       <- as.POSIXct(paste0(year, "-12-31"))
-y_label   <- ("Level (m)")
 
 # Standardize the y axis limits based on the sensor with the largest range of values
 find_max_diff <- function(list){
@@ -469,6 +468,70 @@ max_diff_level <- find_max_diff(level)
 max_diff_temp  <- find_max_diff(do_temp)
 max_diff_sat   <- find_max_diff(do_sat)
 max_diff_cond  <- find_max_diff(cond)
+
+# Draw order (left to right, then up to down)
+# Water level 6, Cond 6
+# water level 9, cond 9
+# Water level 3, cond 3
+# Temp 6, DO sat 6
+# Temp 9, DO sat 9
+# Temp 3, DO sat 3
+draw_order <- data.frame(df = c(rep(c("level", "cond"), 3), 
+                                rep(c("do_temp", "do_sat"), 3)),
+                         sensor = c(rep(c(6,6,9,9,3,3), 2)),
+                         rank = c(rep(c(1,1,2,2,3,3), 2)))
+
+# Function to draw each plot
+plot_draw <- function(df, max_diff, y_label){
+    temp      <- df[df$datetime >= start & df$datetime <= end,]
+    max_val   <- max(temp$value)
+    min_val   <- min(temp$value)
+    mid_point <- (max_val - min_val) / 2
+    ylim_up   <- (min_cond + mid_point) + max_diff
+    ylim_lo   <- (min_cond + mid_point) - max_diff
+    
+    plot(temp$datetime, temp$value, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20)
+  
+    title(paste(temp[1,2], temp[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+}
+
+# Create the massive, 6 by 2 plot
+png(paste0("./Figures/Flood Figures/", year,"_GW Comparison All Variables.png"), 
+    units = "in", width = 14, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(6,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+# Loop to create the plot
+for(i in 1:nrow(draw_order)){
+  if(draw_order$df[i] == "level"){
+    tmp <- level[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_level, "Level (m)")
+    
+  } else if(draw_order$df[i] == "cond"){
+    tmp <- cond[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_cond, "Cond (mS)")
+    
+  } else if(draw_order$df[i] == "do_temp"){
+    tmp <- do_temp[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_temp, "Temp (C)")
+    
+  } else{
+    tmp <- do_sat[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_sat, "DO % Sat")
+  }
+  print(draw_order[i,])
+}
+
+dev.off()
+
+
 
 # Function to create the plot within each list
 plot_list <- function(list, max_diff, y_label){
