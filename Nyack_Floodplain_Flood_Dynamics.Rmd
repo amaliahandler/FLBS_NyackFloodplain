@@ -581,3 +581,212 @@ dev.off()
 
 ```
 
+
+
+Analyze the lag in water level change due to floods across wells
+
+
+```{r}
+level <- read.csv('./Data/Nyack_level_cleaned.csv', header = TRUE)
+
+# Water level flood data
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+
+# Remove questionable and bad data
+level <- level[-which(level$level_m == -999 | level$level_m_flag == 1 | level$level_m_flag == 2),]
+
+# Convert datetime to POSIX variable type
+level$datetime <- as.POSIXct(level$datetime, tz = "MST")
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+sensor <- c(6,9,5,7,4,1,3)
+rank   <- c(1:7)
+rank   <- data.frame(sensor, rank)
+
+level  <- merge(level, rank, by.x = "sensor_number", by.y = "sensor")
+
+# Subset the water level data to only include the sensors for this analysis
+level <- level[level$sensor_number %in% sensor,]
+
+# Break the df into a list based on rank
+level <- split(level, f = as.factor(level$rank))
+
+# Make the names the sensor number
+names(level) <- sensor
+
+# Standardize the y axis limits based on the sensor with the largest range of values for march through may
+year      <- 2015
+start     <- as.POSIXct(paste0(year, "-03-01"))
+end       <- as.POSIXct(paste0(year, "-05-31"))
+
+find_max_diff <- function(list){
+  dat_range <- sapply(list, function(x){
+                temp <- x[x$datetime >= start & x$datetime <= end,]
+                dat_range <- max(temp$level_m) - min(temp$level_m)
+              })
+  max_diff  <- max(dat_range) / 2
+}
+
+max_diff_level <- find_max_diff(level)
+
+# Make figure of 2015 data
+max_diff <- max_diff_level
+y_label <- "Level (m)"
+
+png("./Figures/Flood Figures/03-2015_to_05-2015_GW Level.png", units = "in", 
+    width = 8, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level, function(x){
+    temp      <- x[x$datetime >= start & x$datetime <= end,]
+    max_val   <- max(temp$level_m)
+    min_val   <- min(temp$level_m)
+    mid_point <- (max_val - min_val) / 2
+    ylim_up   <- (min_val + mid_point) + max_diff
+    ylim_lo   <- (min_val + mid_point) - max_diff
+  
+  plot(temp$datetime, temp$level_m, xlab = " ", ylab = y_label, 
+       xlim = c(start, end), xaxs = 'i', yaxs = 'i',
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(temp[1,2], temp[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
+
+# Function to draw each plot
+plot_draw <- function(df, max_diff, y_label, color){
+    temp      <- df[df$datetime >= start & df$datetime <= end,]
+    max_val   <- max(temp$value)
+    min_val   <- min(temp$value)
+    mid_point <- (max_val - min_val) / 2
+    ylim_up   <- (min_val + mid_point) + max_diff
+    ylim_lo   <- (min_val + mid_point) - max_diff
+    
+    plot(temp$datetime, temp$value, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20, col = color)
+  
+    title(paste(temp[1,2], temp[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+}
+
+# Create the massive, 6 by 2 plot
+png(paste0("./Figures/Flood Figures/", year,"_GW Comparison All Variables.png"), 
+    units = "in", width = 14, height = 12, res = 1000, bg = "transparent")
+
+par(mfrow = c(6,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+# Loop to create the plot
+for(i in 1:nrow(draw_order)){
+  if(draw_order$df[i] == "level"){
+    tmp <- level[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_level, "Level (m)", "black")
+    
+  } else if(draw_order$df[i] == "cond"){
+    tmp <- cond[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_cond, "Cond (mS)", "darkgrey")
+    
+  } else if(draw_order$df[i] == "do_temp"){
+    tmp <- do_temp[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_temp, "Temp (C)", "darkblue")
+    
+  } else{
+    tmp <- do_sat[[draw_order$rank[i]]]
+    plot_draw(tmp, max_diff_sat, "DO % Sat", "darkslategrey")
+  }
+  print(draw_order[i,])
+}
+
+dev.off()
+
+
+
+
+
+# Find the latest start date for each sensor
+min_dates <- lapply(level, function(x){min(x$datetime)})
+
+latest_start <- max(do.call("c", min_dates))
+
+# Subset each sensor such that all have the same start datetime
+level <- lapply(level, function(x){x[x$datetime >= latest_start,]})
+
+# Make figure of entire time series
+y_label   <- "Level (m)"
+
+png("./Figures/Flood Figures/GW Level by Rank.png", units = "in", 
+    width = 8, height = 12, res = 100, bg = "transparent")
+
+par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+
+lapply(level, function(x){
+  plot(x$datetime, x$level_m, xlab = " ", ylab = y_label, 
+       cex.lab = 2, cex.axis = 2, pch = 20)
+
+  title(paste(x[1,2], x[1,1], sep = '_'), 
+        line = 0.5, cex.main = 2)
+  
+  box(lwd = 2)
+  })
+
+dev.off()
+
+# Make figure of year to year data
+for(i in 2013:2019){
+  year      <- as.character(i)
+  start     <- as.POSIXct(paste0(year, "-01-01"))
+  end       <- as.POSIXct(paste0(year, "-12-31"))
+  y_label   <- "Level (m)"
+  
+  # Standardize the y axis limits based on the CASC sensor
+  # Find the max and min of the water level data for CASC
+  temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
+  max_level <- max(temp$level_m)
+  min_level <- min(temp$level_m)
+  casc_diff <- (max_level - min_level) / 2
+  
+  png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
+      units = "in", width = 8, height = 12, res = 100, bg = "transparent")
+  
+  par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+  
+  lapply(level, function(x){
+    temp      <- x[x$datetime >= start & x$datetime <= end,]
+    max_level <- max(temp$level_m)
+    min_level <- min(temp$level_m)
+    mid_point <- (max_level - min_level) / 2
+    ylim_up   <- (min_level + mid_point) + casc_diff
+    ylim_lo   <- (min_level + mid_point) - casc_diff
+    
+    plot(temp$datetime, temp$level_m, 
+         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
+         ylim = c(ylim_lo, ylim_up),
+         xlim = c(start, end),
+         cex.lab = 2, cex.axis = 2, pch = 20)
+  
+    title(paste(x[1,2], x[1,1], sep = '_'), 
+          line = 0.5, cex.main = 2)
+    
+    box(lwd = 2)
+    })
+  
+  dev.off()
+  print(i)
+}
+
+
+
+```
+
