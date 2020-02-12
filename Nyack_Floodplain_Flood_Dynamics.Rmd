@@ -631,12 +631,20 @@ find_max_diff <- function(list){
 
 max_diff_level <- find_max_diff(level)
 
+# Find the time of peak water level in main stem
+temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
+
+casc_max_lev <- max(na.omit(temp$level_m))
+
+casc_time_max <- temp[match(casc_max_lev, temp$level_m), "datetime"]
+
 # Make figure of 2015 data
+# Add vertical bar for time of peak water level at CASC
 max_diff <- max_diff_level
 y_label <- "Level (m)"
 
 png("./Figures/Flood Figures/03-2015_to_05-2015_GW Level.png", units = "in", 
-    width = 8, height = 12, res = 100, bg = "transparent")
+    width = 16, height = 12, res = 100, bg = "transparent")
 
 par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
 
@@ -651,6 +659,8 @@ lapply(level, function(x){
   plot(temp$datetime, temp$level_m, xlab = " ", ylab = y_label, 
        xlim = c(start, end), xaxs = 'i', yaxs = 'i',
        cex.lab = 2, cex.axis = 2, pch = 20)
+  
+  abline(v = casc_time_max, lwd = 3)
 
   title(paste(temp[1,2], temp[1,1], sep = '_'), 
         line = 0.5, cex.main = 2)
@@ -660,132 +670,122 @@ lapply(level, function(x){
 
 dev.off()
 
+# Find the max for all wells and compare to the time of peak in the mainstem
+i <- 7
 
-# Function to draw each plot
-plot_draw <- function(df, max_diff, y_label, color){
-    temp      <- df[df$datetime >= start & df$datetime <= end,]
-    max_val   <- max(temp$value)
-    min_val   <- min(temp$value)
-    mid_point <- (max_val - min_val) / 2
-    ylim_up   <- (min_val + mid_point) + max_diff
-    ylim_lo   <- (min_val + mid_point) - max_diff
-    
-    plot(temp$datetime, temp$value, 
-         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-         ylim = c(ylim_lo, ylim_up),
-         xlim = c(start, end),
-         cex.lab = 2, cex.axis = 2, pch = 20, col = color)
+for(i in 2:7){
+  temp <- level[[i]][level[[i]]$datetime >= start & level[[i]]$datetime <= end,]
   
+  max_lev <- max(na.omit(temp$level_m))
+
+  max_t <- temp[match(max_lev, temp$level_m), "datetime"]
+  
+  ifelse(i == 2, max_time <- max_t, max_time[i-1] <- max_t)
+}
+
+
+# Make a df to store the lag information
+lag_hr <- as.numeric(difftime(max_time, casc_time_max))
+lags   <- data.frame(sensor = sensor[2:7], max_time, lag_hr, 
+                     date = as.Date(max_time))
+
+
+# Turn this process into a function
+# Select dates
+# Plot the GW level relative to CASC
+# Get the time of peak water level at CASC
+# Find the corresponding time of max level in GW wells
+
+start_date <- "2015-03-25"
+end_date   <- "2013-04-10"
+
+gw_lags <- function(start_date, end_date){
+  # Define period of time containing flood
+  start <- as.POSIXct(start_date)
+  end   <- as.POSIXct(end_date)
+  
+  # Get the time of peak water level at CASC
+  temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
+  casc_max_lev <- max(na.omit(temp$level_m))
+  casc_time_max <- temp[match(casc_max_lev, temp$level_m), "datetime"]
+  
+  # Plot the GW level relative to CASC
+  max_diff <- find_max_diff(level)
+  
+  png(paste0("./Figures/Flood Figures/GW Level_", start_date,"_", end_date, ".png"), units = "in", width = 12, height = 12, res = 100, bg = "transparent")
+  par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
+  lapply(level, function(x){
+      temp      <- x[x$datetime >= start & x$datetime <= end,]
+      max_val   <- max(temp$level_m)
+      min_val   <- min(temp$level_m)
+      mid_point <- (max_val - min_val) / 2
+      ylim_up   <- (min_val + mid_point) + max_diff
+      ylim_lo   <- (min_val + mid_point) - max_diff
+    plot(temp$datetime, temp$level_m, xlab = " ", ylab = y_label, 
+         xlim = c(start, end), xaxs = 'i', yaxs = 'i',
+         cex.lab = 2, cex.axis = 2, pch = 20)
+    abline(v = casc_time_max, lwd = 3)
     title(paste(temp[1,2], temp[1,1], sep = '_'), 
           line = 0.5, cex.main = 2)
-    
-    box(lwd = 2)
-}
-
-# Create the massive, 6 by 2 plot
-png(paste0("./Figures/Flood Figures/", year,"_GW Comparison All Variables.png"), 
-    units = "in", width = 14, height = 12, res = 1000, bg = "transparent")
-
-par(mfrow = c(6,2), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-# Loop to create the plot
-for(i in 1:nrow(draw_order)){
-  if(draw_order$df[i] == "level"){
-    tmp <- level[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_level, "Level (m)", "black")
-    
-  } else if(draw_order$df[i] == "cond"){
-    tmp <- cond[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_cond, "Cond (mS)", "darkgrey")
-    
-  } else if(draw_order$df[i] == "do_temp"){
-    tmp <- do_temp[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_temp, "Temp (C)", "darkblue")
-    
-  } else{
-    tmp <- do_sat[[draw_order$rank[i]]]
-    plot_draw(tmp, max_diff_sat, "DO % Sat", "darkslategrey")
-  }
-  print(draw_order[i,])
-}
-
-dev.off()
-
-
-
-
-
-# Find the latest start date for each sensor
-min_dates <- lapply(level, function(x){min(x$datetime)})
-
-latest_start <- max(do.call("c", min_dates))
-
-# Subset each sensor such that all have the same start datetime
-level <- lapply(level, function(x){x[x$datetime >= latest_start,]})
-
-# Make figure of entire time series
-y_label   <- "Level (m)"
-
-png("./Figures/Flood Figures/GW Level by Rank.png", units = "in", 
-    width = 8, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(level, function(x){
-  plot(x$datetime, x$level_m, xlab = " ", ylab = y_label, 
-       cex.lab = 2, cex.axis = 2, pch = 20)
-
-  title(paste(x[1,2], x[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  
-  box(lwd = 2)
-  })
-
-dev.off()
-
-# Make figure of year to year data
-for(i in 2013:2019){
-  year      <- as.character(i)
-  start     <- as.POSIXct(paste0(year, "-01-01"))
-  end       <- as.POSIXct(paste0(year, "-12-31"))
-  y_label   <- "Level (m)"
-  
-  # Standardize the y axis limits based on the CASC sensor
-  # Find the max and min of the water level data for CASC
-  temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
-  max_level <- max(temp$level_m)
-  min_level <- min(temp$level_m)
-  casc_diff <- (max_level - min_level) / 2
-  
-  png(paste0("./Figures/Flood Figures/", year,"_GW Level by Rank.png"), 
-      units = "in", width = 8, height = 12, res = 100, bg = "transparent")
-  
-  par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-  
-  lapply(level, function(x){
-    temp      <- x[x$datetime >= start & x$datetime <= end,]
-    max_level <- max(temp$level_m)
-    min_level <- min(temp$level_m)
-    mid_point <- (max_level - min_level) / 2
-    ylim_up   <- (min_level + mid_point) + casc_diff
-    ylim_lo   <- (min_level + mid_point) - casc_diff
-    
-    plot(temp$datetime, temp$level_m, 
-         xlab = " ", ylab = y_label, xaxs = 'i', yaxs = 'i',
-         ylim = c(ylim_lo, ylim_up),
-         xlim = c(start, end),
-         cex.lab = 2, cex.axis = 2, pch = 20)
-  
-    title(paste(x[1,2], x[1,1], sep = '_'), 
-          line = 0.5, cex.main = 2)
-    
     box(lwd = 2)
     })
-  
   dev.off()
-  print(i)
+  
+  # Find the corresponding time of max level in GW wells  
+  for(i in 2:7){
+    temp <- level[[i]][level[[i]]$datetime >= start & level[[i]]$datetime <= end,]
+    max_lev <- max(na.omit(temp$level_m))
+    max_t <- temp[match(max_lev, temp$level_m), "datetime"]
+    ifelse(i == 2, max_time <- max_t, max_time[i-1] <- max_t)
+  }
+  
+  # Create df of lag times
+  lag_hr <- as.numeric(difftime(max_time, casc_time_max, units = "hours"))
+  lags   <- data.frame(sensor = sensor[2:7], max_time, lag_hr, 
+                       date = as.Date(max_time))
+  
+  return(lags)
+  print(lags)
 }
 
+lag_1 <- gw_lags("2015-03-01", "2015-05-31")
+lag_2 <- gw_lags("2014-11-01", "2014-12-31")
+lag_3 <- gw_lags("2014-05-01", "2014-05-31")
+lag_4 <- gw_lags("2014-05-01", "2014-05-10")
+lag_5 <- gw_lags("2014-04-01", "2014-04-15")
+lag_6 <- gw_lags("2014-03-01", "2014-03-31")
+lag_7 <- gw_lags("2014-06-01", "2014-06-30")
+lag_8 <- gw_lags("2014-08-01", "2014-08-31")
+
+lag_9  <- gw_lags("2013-04-01", "2013-04-30"); lag_9[1, "lag_hr"] <- NA
+lag_10 <- gw_lags("2013-05-01", "2013-05-31")
+lag_11 <- gw_lags("2013-06-19", "2013-06-30")
+lag_12 <- gw_lags("2013-07-01", "2013-07-31")
+
+# All data from sensor 5 should be removed, looks like this sensor is being affected by diel evaporation trends
+lag_13 <- gw_lags("2016-05-18", "2016-05-22"); lag_13[2, "lag_hr"] <- NA
+lag_14 <- gw_lags("2016-06-01", "2016-06-30"); lag_14[2, "lag_hr"] <- NA
+lag_15 <- gw_lags("2016-09-01", "2016-09-30"); lag_15[2, "lag_hr"] <- NA
+lag_16 <- gw_lags("2016-10-01", "2016-10-13"); lag_16[2, "lag_hr"] <- NA
+lag_17 <- gw_lags("2016-10-26", "2016-11-15"); lag_17[2, "lag_hr"] <- NA
+
+
+lag_18 <- gw_lags("2017-03-01", "2017-03-18")
+lag_19 <- gw_lags("2017-05-01", "2017-05-10")
+lag_20 <- gw_lags("2017-05-10", "2017-05-19")
+lag_21 <- gw_lags("2017-05-20", "2017-05-27")
+lag_22 <- gw_lags("2017-06-01", "2017-06-30")
+lag_23 <- gw_lags("2017-06-13", "2017-06-16")
+lag_24 <- gw_lags("2017-06-16", "2017-06-25")
+lag_25 <- gw_lags("2017-07-01", "2017-07-31")
+
+lag_25 <- gw_lags("2018-04-20", "2018-05-15")
+lag_26 <- gw_lags("2018-04-25", "2018-05-02")
+lag_27 <- gw_lags("2018-11-01", "2018-11-30"); lag_27[6, "lag_hr"] <- NA
+
+lags <- rbind(lag_1,lag_2,lag_3,lag_4,lag_5,lag_6,lag_7,lag_8,lag_10,
+              lag_11,lag_12,lag_13,lag_14,lag_15,lag_16,lag_17,lag_18,lag_19,
+              lag_20,lag_21,lag_22,lag_23,lag_24,lag_25,lag_26,lag_27)
 
 
 ```
