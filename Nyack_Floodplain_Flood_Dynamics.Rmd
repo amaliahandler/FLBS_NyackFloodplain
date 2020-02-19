@@ -802,10 +802,10 @@ Conductivity lags
 
 
 ```{r}
-
 library(dplyr)
 
 cond <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
+level <- read.csv('./Data/Nyack_level_cleaned.csv', header = TRUE)
 
 # Water level flood data
 # Bad data: value = -999
@@ -813,9 +813,11 @@ cond <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
 
 # Remove questionable and bad data
 cond <- cond[-which(cond$cond == -999 | cond$cond_flag == 1 | cond$cond_flag == 2),]
+level <- level[-which(level$level_m == -999 | level$level_m_flag == 1 | level$level_m_flag == 2),]
 
 # Convert datetime to POSIX variable type
 cond$datetime <- as.POSIXct(cond$datetime, tz = "MST")
+level$datetime <- as.POSIXct(level$datetime, tz = "MST")
 
 # Rank groundwater wells by distance from the Middle Fork of the Flathead River
 # The water level on the Middle Fork (CASC sensor) receives a rank of 1
@@ -824,29 +826,23 @@ rank   <- c(1:7)
 rank   <- data.frame(sensor, rank)
 
 cond  <- merge(cond, rank, by.x = "sensor_number", by.y = "sensor")
+level  <- merge(level, rank, by.x = "sensor_number", by.y = "sensor")
 
 # Subset the water level data to only include the sensors for this analysis
-cond <- cond[cond$sensor_number %in% sensor,]
+cond <- cond[cond$sensor_number %in% sensor,]# Subset the water level data to only 
+level <- level[level$sensor_number %in% sensor,]
 
 # Break the df into a list based on rank
 cond <- split(cond, f = as.factor(cond$rank))
+level <- split(level, f = as.factor(level$rank))
 
 # Make the names the sensor number
 names(cond) <- sensor
+names(level) <- sensor
 
 # For testing functions below
 start_date <- "2015-03-25"
-end_date   <- "2015-05-31"
-
-# Function to standardize the size of the y axis range in figures
-find_max_diff <- function(list){
-  dat_range <- sapply(list, function(x){
-                temp <- x[x$datetime >= start & x$datetime <= end,]
-                dat_range <- max(temp$cond) - min(temp$cond)
-              })
-  max_diff  <- max(dat_range) / 2
-}
-
+end_date   <- "2015-04-25"
 
 # Function to find the time difference between peak water level in the main stem and max change in conductivity of the groundwater wells
 gw_lags <- function(start_date, end_date){
@@ -855,32 +851,28 @@ gw_lags <- function(start_date, end_date){
   end   <- as.POSIXct(end_date, tz = "MST")
 
   png(paste0("./Figures/Flood Figures/GW Level Cond_", start_date,"_", end_date, ".png"), units = "in", width = 6, height = 12, res = 100, bg = "transparent")
-  par(mfrow = c(8,1), oma = c(1,1,1,0), mar = c(1,5,0,2))
+  par(mfrow = c(7,1), oma = c(1,1,1,0), mar = c(1,5,0,2))
   
   tmp <- level[[1]][level[[1]]$datetime >= start & level[[1]]$datetime <= end,]
   casc_max_lev  <- max(na.omit(tmp$level_m))
   casc_time_max <- tmp[match(casc_max_lev, tmp$level_m), "datetime"]
   
-  plot(tmp$datetime, tmp$level_m, xlab = " ", ylab = "Level (m)", 
-         xlim = c(start, end), xaxs = 'i', col = "purple",
-         cex.lab = 2, cex.axis = 2, pch = 19, xaxt = 'n')
-  mtext(paste(tmp[1,2], tmp[1,1], sep = '_'), side = 4,
-          line = 1, cex = 1.5)
-  abline(v = casc_time_max, lwd = 2, col = "red")
-  box(lwd = 2)
-  
   tmp <- cond[[1]][cond[[1]]$datetime >= start & cond[[1]]$datetime <= end,]
   min_cond  <- min(na.omit(tmp$cond))
   min_cond_time <- tmp[match(min_cond, tmp$cond), "datetime"]
   
-  lapply(cond, function(x){
-    temp <- x[x$datetime >= start & x$datetime <= end,]
-    plot(temp$datetime, temp$cond, xlab = " ", ylab = "Cond (mS)", 
+  lapply(seq_along(cond), function(i){
+    c.tmp <- cond[[i]][cond[[i]]$datetime >= start & cond[[i]]$datetime <= end,]
+    l.tmp <- level[[i]][level[[i]]$datetime >= start & level[[i]]$datetime <= end,]
+    plot(c.tmp$datetime, c.tmp$cond, xlab = " ", ylab = "Cond (mS)", 
          xlim = c(start, end), xaxs = 'i',
          cex.lab = 2, cex.axis = 2, pch = 19, xaxt = 'n')
+    par(new = T)
+    plot(l.tmp$datetime, l.tmp$level_m, xlab = " ", ylab = " ", col = "grey",
+         xlim = c(start, end), xaxs = 'i', pch = 19, xaxt = 'n', yaxt = 'n')
     abline(v = casc_time_max, lwd = 2, col = "red")
     abline(v = min_cond_time, lwd = 2, col = "blue")
-    mtext(paste(temp[1,2], temp[1,1], sep = '_'), side = 4,
+    mtext(paste(temp[1,1], sep = '_'), side = 4,
           line = 1, cex = 1.5)
     box(lwd = 2)
     })
@@ -888,11 +880,14 @@ gw_lags <- function(start_date, end_date){
   breaks <- pretty(c(0,as.numeric(difftime(end, start))), n = 3) * 60 * 60 * 24
   axis(side = 1, at = c(start + breaks), 
        labels = format(start + breaks, "%m-%d"), cex.axis = 2)
+  # x.coord <- start + as.numeric(difftime(end, start)) / 2 * 60 * 60 * 24
+  # legend(xcoord, , pch = 19, col = c("black", "grey"),
+  #        legend = c("Cond", "Level"), horiz = TRUE, bty = 'n')
   
   dev.off()
 }
 
-lag_1 <- gw_lags("2015-03-25", "2015-04-25")
+lag_1 <- gw_lags("2015-03-25", "2015-04-14")
 lag_2 <- gw_lags("2014-11-21", "2014-12-31")
 lag_3 <- gw_lags("2014-05-01", "2014-05-10")
 lag_5 <- gw_lags("2014-04-01", "2014-04-15")
