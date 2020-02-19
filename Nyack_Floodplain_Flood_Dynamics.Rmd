@@ -587,6 +587,8 @@ Analyze the lag in water level change due to floods across wells
 
 
 ```{r}
+library(dplyr)
+
 level <- read.csv('./Data/Nyack_level_cleaned.csv', header = TRUE)
 
 # Water level flood data
@@ -616,11 +618,11 @@ level <- split(level, f = as.factor(level$rank))
 # Make the names the sensor number
 names(level) <- sensor
 
-# Standardize the y axis limits based on the sensor with the largest range of values for march through may
-year      <- 2015
-start     <- as.POSIXct(paste0(year, "-03-01"))
-end       <- as.POSIXct(paste0(year, "-05-31"))
+# For testing functions below
+start_date <- "2015-03-25"
+end_date   <- "2013-04-10"
 
+# Function to standardize the size of the y axis range in figures
 find_max_diff <- function(list){
   dat_range <- sapply(list, function(x){
                 temp <- x[x$datetime >= start & x$datetime <= end,]
@@ -629,76 +631,8 @@ find_max_diff <- function(list){
   max_diff  <- max(dat_range) / 2
 }
 
-max_diff_level <- find_max_diff(level)
 
-# Find the time of peak water level in main stem
-temp <- level$`6`[level$`6`$datetime >= start & level$`6`$datetime <= end,]
-
-casc_max_lev <- max(na.omit(temp$level_m))
-
-casc_time_max <- temp[match(casc_max_lev, temp$level_m), "datetime"]
-
-# Make figure of 2015 data
-# Add vertical bar for time of peak water level at CASC
-max_diff <- max_diff_level
-y_label <- "Level (m)"
-
-png("./Figures/Flood Figures/03-2015_to_05-2015_GW Level.png", units = "in", 
-    width = 16, height = 12, res = 100, bg = "transparent")
-
-par(mfrow = c(7,1), oma = c(2,2,1,1), mar = c(3,5,2,0))
-
-lapply(level, function(x){
-    temp      <- x[x$datetime >= start & x$datetime <= end,]
-    max_val   <- max(temp$level_m)
-    min_val   <- min(temp$level_m)
-    mid_point <- (max_val - min_val) / 2
-    ylim_up   <- (min_val + mid_point) + max_diff
-    ylim_lo   <- (min_val + mid_point) - max_diff
-  
-  plot(temp$datetime, temp$level_m, xlab = " ", ylab = y_label, 
-       xlim = c(start, end), xaxs = 'i', yaxs = 'i',
-       cex.lab = 2, cex.axis = 2, pch = 20)
-  
-  abline(v = casc_time_max, lwd = 3)
-
-  title(paste(temp[1,2], temp[1,1], sep = '_'), 
-        line = 0.5, cex.main = 2)
-  
-  box(lwd = 2)
-  })
-
-dev.off()
-
-# Find the max for all wells and compare to the time of peak in the mainstem
-i <- 7
-
-for(i in 2:7){
-  temp <- level[[i]][level[[i]]$datetime >= start & level[[i]]$datetime <= end,]
-  
-  max_lev <- max(na.omit(temp$level_m))
-
-  max_t <- temp[match(max_lev, temp$level_m), "datetime"]
-  
-  ifelse(i == 2, max_time <- max_t, max_time[i-1] <- max_t)
-}
-
-
-# Make a df to store the lag information
-lag_hr <- as.numeric(difftime(max_time, casc_time_max))
-lags   <- data.frame(sensor = sensor[2:7], max_time, lag_hr, 
-                     date = as.Date(max_time))
-
-
-# Turn this process into a function
-# Select dates
-# Plot the GW level relative to CASC
-# Get the time of peak water level at CASC
-# Find the corresponding time of max level in GW wells
-
-start_date <- "2015-03-25"
-end_date   <- "2013-04-10"
-
+# Function to find the time difference between peak water level in the main stem and the groundwater wells
 gw_lags <- function(start_date, end_date){
   # Define period of time containing flood
   start <- as.POSIXct(start_date)
@@ -721,10 +655,10 @@ gw_lags <- function(start_date, end_date){
       mid_point <- (max_val - min_val) / 2
       ylim_up   <- (min_val + mid_point) + max_diff
       ylim_lo   <- (min_val + mid_point) - max_diff
-    plot(temp$datetime, temp$level_m, xlab = " ", ylab = y_label, 
+    plot(temp$datetime, temp$level_m, xlab = " ", ylab = "Level (m)", 
          xlim = c(start, end), xaxs = 'i', yaxs = 'i',
          cex.lab = 2, cex.axis = 2, pch = 20)
-    abline(v = casc_time_max, lwd = 3)
+    abline(v = casc_time_max, lwd = 3, col = "blue")
     title(paste(temp[1,2], temp[1,1], sep = '_'), 
           line = 0.5, cex.main = 2)
     box(lwd = 2)
@@ -754,21 +688,20 @@ lag_3 <- gw_lags("2014-05-01", "2014-05-31")
 lag_4 <- gw_lags("2014-05-01", "2014-05-10")
 lag_5 <- gw_lags("2014-04-01", "2014-04-15")
 lag_6 <- gw_lags("2014-03-01", "2014-03-31")
-lag_7 <- gw_lags("2014-06-01", "2014-06-30")
-lag_8 <- gw_lags("2014-08-01", "2014-08-31")
+lag_7 <- gw_lags("2014-06-01", "2014-06-21")
+lag_8 <- gw_lags("2014-08-14", "2014-08-20")
 
 lag_9  <- gw_lags("2013-04-01", "2013-04-30"); lag_9[1, "lag_hr"] <- NA
 lag_10 <- gw_lags("2013-05-01", "2013-05-31")
 lag_11 <- gw_lags("2013-06-19", "2013-06-30")
-lag_12 <- gw_lags("2013-07-01", "2013-07-31")
+# lag_12 <- gw_lags("2013-07-01", "2013-07-31")
 
 # All data from sensor 5 should be removed, looks like this sensor is being affected by diel evaporation trends
-lag_13 <- gw_lags("2016-05-18", "2016-05-22"); lag_13[2, "lag_hr"] <- NA
+lag_13 <- gw_lags("2016-05-15", "2016-05-22"); lag_13[2, "lag_hr"] <- NA
 lag_14 <- gw_lags("2016-06-01", "2016-06-30"); lag_14[2, "lag_hr"] <- NA
 lag_15 <- gw_lags("2016-09-01", "2016-09-30"); lag_15[2, "lag_hr"] <- NA
 lag_16 <- gw_lags("2016-10-01", "2016-10-13"); lag_16[2, "lag_hr"] <- NA
 lag_17 <- gw_lags("2016-10-26", "2016-11-15"); lag_17[2, "lag_hr"] <- NA
-
 
 lag_18 <- gw_lags("2017-03-01", "2017-03-18")
 lag_19 <- gw_lags("2017-05-01", "2017-05-10")
@@ -784,9 +717,228 @@ lag_26 <- gw_lags("2018-04-25", "2018-05-02")
 lag_27 <- gw_lags("2018-11-01", "2018-11-30"); lag_27[6, "lag_hr"] <- NA
 
 lags <- rbind(lag_1,lag_2,lag_3,lag_4,lag_5,lag_6,lag_7,lag_8,lag_10,
-              lag_11,lag_12,lag_13,lag_14,lag_15,lag_16,lag_17,lag_18,lag_19,
+              lag_11,lag_13,lag_14,lag_15,lag_16,lag_17,lag_18,lag_19,
               lag_20,lag_21,lag_22,lag_23,lag_24,lag_25,lag_26,lag_27)
 
+lags <- merge(lags, rank, by = "sensor")
+
+# Clearly, there are a number of cases where the GW wells that are furthest from the main stem are experiencing an increase in water level sooner than the main stem. This could be due to runoff from the adjacent slope to the floodplain or groundwater input from a source other than the main stem that is sensivitive to precipitation or snow melt.
+
+mean_lag <- lags %>%
+  group_by(sensor) %>%
+  summarise(mean_lag = median(na.omit(lag_hr)))
+
+mean_lag <- merge(mean_lag, rank, by = "sensor")
+mean_lag[order(mean_lag$rank),]
+
+# Boxplot of lag times for each well
+
+png("./Figures/Flood Figures/Well Lag Time Boxplot.png", 
+           units = "in", res = 150, width = 5, height = 4)
+par(mar = c(4,6,2,1))
+boxplot(lag_hr ~ rank, data = lags, horizontal = TRUE,
+        col = "grey", bg = "grey", xlab = "", ylab = "",
+        xlim = c(6.5,0.5), yaxt = "n")
+abline(v = 0, lwd = 1.5)
+axis(2, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
+     las=1, adj=0)
+title(xlab = "Lag from CASC in Peak Water Level (hr)", line = 2)
+title(ylab = "Rank Distance from Main Stem", line = 4.5)
+title(main = "All Floods")
+dev.off()
+
+# Two boxplots broken up by cases where wells HA08 and 07 have negative lags
+length(lags$lag_hr[lags$sensor == 3 & lags$lag_hr <0])
+length(lags$lag_hr[lags$sensor == 1 & lags$lag_hr <0])
+
+# Lags excluding less than zero lags from HA08 (sensor 1)
+dates            <- lags$date[which(lags$sensor == 3 & lags$lag_hr < 0 |
+                                    lags$sensor == 1 & lags$lag_hr < 0)]
+lags_1_less_zero <- lags[lags$date %in% dates,]
+lags_wo_1zero    <- lags[!(lags$date %in% dates),]
+
+png("./Figures/Flood Figures/Well Lag Time Boxplot Biplot.png", 
+           units = "in", res = 150, width = 5.5, height = 4)
+par(oma = c(4,6,1.5,0), mar = c(0,0,1.5,1), mfrow = c(1,2))
+boxplot(lag_hr ~ rank, data = lags_1_less_zero, horizontal = TRUE,
+        col = "grey", bg = "grey", xlab = "", ylab = "",
+        xlim = c(6.5,0.5), yaxt = "n")
+abline(v = 0, lwd = 1.5)
+axis(2, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
+     las=1, adj=0)
+# title(xlab = "Lag from CASC in Peak Water Level (hr)", line = 2)
+title(ylab = "Rank Distance from Main Stem       ", outer = TRUE, line = 4.5)
+title(main = " < 0", cex.main = 1, font = 1)
+
+boxplot(lag_hr ~ rank, data = lags_wo_1zero, horizontal = TRUE,
+        col = "grey", bg = "grey", xlab = "", ylab = "",
+        xlim = c(6.5,0.5), yaxt = "n")
+abline(v = 0, lwd = 1.5)
+# axis(2, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'), las=1, adj=0)
+title(sub = "Lag from CASC in Peak Water Level (hr)", outer = TRUE, line = 2)
+title(main = "Floods where HA07 or HA08 Lag Time", outer = TRUE, 
+      cex.main = 1, font = 1, line = 0)
+title(main = " > 0", cex.main = 1, font = 1)
+dev.off()
+
+mean_lag <- lags_1_less_zero %>%
+  group_by(sensor) %>%
+  summarise(mean_lag = median(na.omit(lag_hr)))
+
+mean_lag <- merge(mean_lag, rank, by = "sensor")
+mean_lag[order(mean_lag$rank),]
+
+mean_lag <- lags_wo_1zero %>%
+  group_by(sensor) %>%
+  summarise(mean_lag = median(na.omit(lag_hr)))
+
+mean_lag <- merge(mean_lag, rank, by = "sensor")
+mean_lag[order(mean_lag$rank),]
+
+```
+
+
+Conductivity lags
+
+
+```{r}
+
+library(dplyr)
+
+cond <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
+
+# Water level flood data
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+
+# Remove questionable and bad data
+cond <- cond[-which(cond$cond == -999 | cond$cond_flag == 1 | cond$cond_flag == 2),]
+
+# Convert datetime to POSIX variable type
+cond$datetime <- as.POSIXct(cond$datetime, tz = "MST")
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+sensor <- c(6,9,5,7,4,1,3)
+rank   <- c(1:7)
+rank   <- data.frame(sensor, rank)
+
+cond  <- merge(cond, rank, by.x = "sensor_number", by.y = "sensor")
+
+# Subset the water level data to only include the sensors for this analysis
+cond <- cond[cond$sensor_number %in% sensor,]
+
+# Break the df into a list based on rank
+cond <- split(cond, f = as.factor(cond$rank))
+
+# Make the names the sensor number
+names(cond) <- sensor
+
+# For testing functions below
+start_date <- "2015-03-25"
+end_date   <- "2015-05-31"
+
+# Function to standardize the size of the y axis range in figures
+find_max_diff <- function(list){
+  dat_range <- sapply(list, function(x){
+                temp <- x[x$datetime >= start & x$datetime <= end,]
+                dat_range <- max(temp$cond) - min(temp$cond)
+              })
+  max_diff  <- max(dat_range) / 2
+}
+
+
+# Function to find the time difference between peak water level in the main stem and max change in conductivity of the groundwater wells
+gw_lags <- function(start_date, end_date){
+  # Define period of time containing flood
+  start <- as.POSIXct(start_date, tz = "MST")
+  end   <- as.POSIXct(end_date, tz = "MST")
+
+  png(paste0("./Figures/Flood Figures/GW Level Cond_", start_date,"_", end_date, ".png"), units = "in", width = 6, height = 12, res = 100, bg = "transparent")
+  par(mfrow = c(8,1), oma = c(1,1,1,0), mar = c(1,5,0,2))
+  
+  tmp <- level[[1]][level[[1]]$datetime >= start & level[[1]]$datetime <= end,]
+  casc_max_lev  <- max(na.omit(tmp$level_m))
+  casc_time_max <- tmp[match(casc_max_lev, tmp$level_m), "datetime"]
+  
+  plot(tmp$datetime, tmp$level_m, xlab = " ", ylab = "Level (m)", 
+         xlim = c(start, end), xaxs = 'i', col = "purple",
+         cex.lab = 2, cex.axis = 2, pch = 19, xaxt = 'n')
+  mtext(paste(tmp[1,2], tmp[1,1], sep = '_'), side = 4,
+          line = 1, cex = 1.5)
+  abline(v = casc_time_max, lwd = 2, col = "red")
+  box(lwd = 2)
+  
+  tmp <- cond[[1]][cond[[1]]$datetime >= start & cond[[1]]$datetime <= end,]
+  min_cond  <- min(na.omit(tmp$cond))
+  min_cond_time <- tmp[match(min_cond, tmp$cond), "datetime"]
+  
+  lapply(cond, function(x){
+    temp <- x[x$datetime >= start & x$datetime <= end,]
+    plot(temp$datetime, temp$cond, xlab = " ", ylab = "Cond (mS)", 
+         xlim = c(start, end), xaxs = 'i',
+         cex.lab = 2, cex.axis = 2, pch = 19, xaxt = 'n')
+    abline(v = casc_time_max, lwd = 2, col = "red")
+    abline(v = min_cond_time, lwd = 2, col = "blue")
+    mtext(paste(temp[1,2], temp[1,1], sep = '_'), side = 4,
+          line = 1, cex = 1.5)
+    box(lwd = 2)
+    })
+  
+  breaks <- pretty(c(0,as.numeric(difftime(end, start))), n = 3) * 60 * 60 * 24
+  axis(side = 1, at = c(start + breaks), 
+       labels = format(start + breaks, "%m-%d"), cex.axis = 2)
+  
+  dev.off()
+}
+
+lag_1 <- gw_lags("2015-03-25", "2015-04-25")
+lag_2 <- gw_lags("2014-11-21", "2014-12-31")
+lag_3 <- gw_lags("2014-05-01", "2014-05-10")
+lag_5 <- gw_lags("2014-04-01", "2014-04-15")
+lag_6 <- gw_lags("2014-03-01", "2014-03-31")
+lag_7 <- gw_lags("2014-06-01", "2014-06-21")
+lag_8 <- gw_lags("2014-08-14", "2014-08-20")
+
+lag_9  <- gw_lags("2013-04-01", "2013-04-30"); lag_9[1, "lag_hr"] <- NA
+lag_10 <- gw_lags("2013-05-01", "2013-05-31")
+lag_11 <- gw_lags("2013-06-19", "2013-06-30")
+# lag_12 <- gw_lags("2013-07-01", "2013-07-31")
+
+# All data from sensor 5 should be removed, looks like this sensor is being affected by diel evaporation trends
+lag_13 <- gw_lags("2016-05-15", "2016-05-22"); lag_13[2, "lag_hr"] <- NA
+lag_14 <- gw_lags("2016-06-01", "2016-06-30"); lag_14[2, "lag_hr"] <- NA
+lag_15 <- gw_lags("2016-09-01", "2016-09-30"); lag_15[2, "lag_hr"] <- NA
+lag_16 <- gw_lags("2016-10-01", "2016-10-13"); lag_16[2, "lag_hr"] <- NA
+lag_17 <- gw_lags("2016-10-26", "2016-11-15"); lag_17[2, "lag_hr"] <- NA
+
+lag_18 <- gw_lags("2017-03-01", "2017-03-18")
+lag_19 <- gw_lags("2017-05-01", "2017-05-10")
+lag_20 <- gw_lags("2017-05-10", "2017-05-19")
+lag_21 <- gw_lags("2017-05-20", "2017-05-27")
+lag_22 <- gw_lags("2017-06-01", "2017-06-30")
+lag_23 <- gw_lags("2017-06-13", "2017-06-16")
+lag_24 <- gw_lags("2017-06-16", "2017-06-25")
+lag_25 <- gw_lags("2017-07-01", "2017-07-31")
+
+lag_25 <- gw_lags("2018-04-20", "2018-05-15")
+lag_26 <- gw_lags("2018-04-25", "2018-05-02")
+lag_27 <- gw_lags("2018-11-01", "2018-11-30"); lag_27[6, "lag_hr"] <- NA
+
+lags <- rbind(lag_1,lag_2,lag_3,lag_4,lag_5,lag_6,lag_7,lag_8,lag_10,
+              lag_11,lag_13,lag_14,lag_15,lag_16,lag_17,lag_18,lag_19,
+              lag_20,lag_21,lag_22,lag_23,lag_24,lag_25,lag_26,lag_27)
+
+lags <- merge(lags, rank, by = "sensor")
+
+# Clearly, there are a number of cases where the GW wells that are furthest from the main stem are experiencing an increase in water level sooner than the main stem. This could be due to runoff from the adjacent slope to the floodplain or groundwater input from a source other than the main stem that is sensivitive to precipitation or snow melt.
+
+mean_lag <- lags %>%
+  group_by(sensor) %>%
+  summarise(mean_lag = median(na.omit(lag_hr)))
+
+mean_lag <- merge(mean_lag, rank, by = "sensor")
+mean_lag[order(mean_lag$rank),]
 
 ```
 
