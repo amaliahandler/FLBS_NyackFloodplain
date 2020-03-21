@@ -1,0 +1,425 @@
+---
+title: "Floods Time Lag Regression"
+author: "Amalia Handler"
+date: "3/16/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+This script is used to investigate the influence of Middle Fork of the Flathead River floods on the Nyack Floodplain. The data (temperature, dissolved oxygen, conductivity, and water level) include six groundwater wells and three surface water wells.
+
+Note that the data used here has been QAQC'ed through removal of bad data associated with sensor error and servicing using the script titled "Nyack_Floodplain_Water_QAQC.Rmd" available on Amalia Handler's GitHub repository amaliahandler/FLBS_NyackFloodplain.
+
+
+```{r}
+# Load packages
+
+# Load data
+options(stringsAsFactors = FALSE)
+
+cond  <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
+do    <- read.csv('./Data/Nyack_do_cleaned.csv', header = TRUE)
+level <- read.csv('./Data/Nyack_level_cleaned.csv', header = TRUE)
+
+```
+
+
+Get a few test periods of flood data to test out isolating floods
+
+
+```{r}
+# Water level flood data
+# Bad data: value = -999
+# Questionable data flags: 1 (questionable), 2 (silt in well)
+
+# Remove questionable and bad data
+level <- level[-which(level$level_m == -999 | level$level_m_flag == 1 | level$level_m_flag == 2),]
+
+# Convert datetime to POSIX variable type
+level$datetime <- as.POSIXct(level$datetime, tz = "MST")
+
+# Rank groundwater wells by distance from the Middle Fork of the Flathead River
+# The water level on the Middle Fork (CASC sensor) receives a rank of 1
+sensor <- c(6,9,5,7,4,1,3)
+rank   <- c(1:7)
+rank   <- data.frame(sensor, rank)
+
+level  <- merge(level, rank, by.x = "sensor_number", by.y = "sensor")
+
+# Subset the water level data to only include the sensors for this analysis
+level <- level[level$sensor_number %in% sensor,]
+
+# Break the df into a list based on rank
+level <- split(level, f = as.factor(level$rank))
+
+# Make the names the sensor number
+names(level) <- sensor
+
+# Set par
+par(mfrow = c(1,1), mar = c(4,4,1,1))
+
+flood_finder <- function(start_date, end_date){
+  # Define period of time containing flood
+  start <- as.POSIXct(start_date)
+  end   <- as.POSIXct(end_date)
+  
+  # Subset water level data to these dates
+  sub_lvl <- lapply(level, function(x){x[x$datetime >= start & x$datetime <= end,]})
+
+  # Plot the water level at CASC to see if baseflow prior to flood, rising limb, and falling limb are included in the subset
+  with(sub_lvl[[1]], plot(datetime, level_m, pch = 19))
+  
+  return(complete.cases(sub_lvl))
+}
+
+# Potential sample periods with example floods
+tmp1 <- flood_finder("2017-03-08", "2017-03-25")
+tmp2 <- flood_finder("2016-10-06", "2016-10-14")
+tmp3 <- flood_finder("2014-04-01", "2014-04-18")
+tmp4 <- flood_finder("2014-04-25", "2014-05-10")
+tmp5 <- flood_finder("2014-11-26", "2014-12-10")
+
+```
+
+
+Experiment with the Savitzky-Golay smoothing filters to detect floods in the main stem
+
+
+```{r}
+library(signal)
+
+# sgolay and sgolayfilt
+sgolay(tmp2[[1]]$level_m[1:189], p = 3)
+
+bf <- butter(5,1/3)
+x <- c(rep(0,15), rep(10, 10), rep(0, 15))
+sg <- sgolayfilt(x)
+plot(sg, type="l")
+lines(filtfilt(rep(1, 5)/5,1,x), col = "red") # averaging filter
+lines(filtfilt(bf,x), col = "blue")           # butterworth
+points(x, pch = "x")                          # original data
+
+sgolayfilt(tmp2[[1]]$level_m)
+plot(tmp2[[1]]$level_m)
+points(sgolayfilt(tmp2[[1]]$level_m), pch = ".", cex = 3)
+
+sgolay(tmp2[[1]]$level_m, n = 9)
+
+set.seed(99)
+n <- 100
+x <- (1:n) / n
+clean.data <- ((exp(1.2*x)+1.5*sin(7*x))-1)/3
+ 
+df <- data.frame(
+    x = x,
+    clean = clean.data,
+    noisy = clean.data + rnorm(n, 0, 0.12)
+)
+
+sg <- sgolay(p=2, n=19, m=0)
+dim(sg)
+
+df$sg <- filter(sg, df$noisy)
+
+plot(df$noisy)
+lines(df$sg)
+
+sgd <- sgolay(p=2, n=19, m=1)
+df$sgd <- filter(sgd, df$noisy)
+
+plot(df$sgd)
+
+par(mfrow=c(2,1))
+
+plot(df$noisy)
+lines(df$sg)
+
+plot(df$sgd)
+abline(h=0)
+
+sg <- sgolay(p = 3, n = 9, m = 0)
+sgd <- sgolay(p = 3, n = 9, m = 1)
+sga <- sgolay(p = 3, n = 9, m = 2)
+
+t_smooth <- filter(sg, tmp2[[1]]$level_m)
+t_derv   <- filter(sgd, tmp2[[1]]$level_m)
+t_acc    <- filter(sga, tmp2[[1]]$level_m)
+
+plot(tmp2[[1]]$level_m)
+lines(t_smooth, col = "blue")
+abline(v = match(max(tmp2[[1]]$level_m), tmp2[[1]]$level_m))
+
+plot(t_derv)
+abline(h = 0, col = "blue")
+abline(v = match(max(tmp2[[1]]$level_m), tmp2[[1]]$level_m))
+
+plot(t_acc)
+abline(h = 0, col = "blue")
+abline(v = match(max(tmp2[[1]]$level_m), tmp2[[1]]$level_m))
+
+
+# Make a function for the process
+# Try setting a TH for the derivative
+# Try looking at the distribution of the derivitives
+# Try flagging values above the some percentile slope
+# Try calculating the 2nd derivative to calculate acceleration
+
+plot_sg <- function(df, start_flood_obs){
+  y <- df$level_m
+  x <- df$datetime
+  
+  t_smooth <- filter(sg, y)
+  t_derv   <- filter(sgd, y)
+  t_acc    <- filter(sga, y)
+  
+  q <- as.numeric(quantile(t_derv, 0.85))
+  
+  # Plot data
+  plot(x, y)
+  lines(t_smooth, col = "blue")
+  #abline(v = match(max(x), x))
+  abline(v = x[start_flood_obs])
+  #points(x[t_derv > 0.001], y[t_derv > 0.001], col = "blue")
+  points(x[t_derv > q], y[t_derv > q], col = "blue")
+  
+  # Plot 1st derivative (slope)
+  plot(x, t_derv)
+  abline(h = 0, col = "blue")
+  #abline(v = match(max(x), x))
+  abline(v = x[start_flood_obs])
+  #points(x[t_derv > 0.001], t_derv[t_derv > 0.001], col = "blue")
+  points(x[t_derv > q], t_derv[t_derv > q], col = "blue")
+  
+  # Plot 2nd derivative (acceleration)
+  # plot(x, t_acc)
+  # abline(v = x[start_flood_obs])
+  
+  
+  return(q)
+}
+
+plot_sg(tmp1[[1]], 160)
+plot_sg(tmp2[[1]], 75)
+plot_sg(tmp3[[1]], 175)
+plot_sg(tmp4[[1]], 140)
+plot_sg(tmp5[[1]], 25)
+
+
+```
+
+Stuff learned so far
+
+Identifying floods is really hard
+
+Using a threshold percentile value for the first derivative does a decent job at identifying the start of the flood. This method however flags many observations that are not included in the flood (small changes in water level before and after). It also only captures the rising limb of the flood. 
+
+Might consider experimenting with a moving average approach to identify where the flood start occurs. Same for when a flood ends: If the slope stays the same for move than i observations, then it's just flood recession and not longer an active flood. Maybe consider not qualitying the end of the flood, because that is a lot harder and more nuanced. Getting the start time and the peak time will have to do for now (and will enable me to get a questions about the magnitude of disturbance).
+
+Using the first derivative to identify the peak of the flood works well. 
+
+The second derivative is not super informative and does not add much info to the analysis.
+
+Maybe try using a secondary filter like: If 8/10 observations in a row are above the 1st deirvative TH, then it is likely part of a flood.
+
+
+
+Now play around with building linear models with different lags
+
+May need to consider standardizing the water level info so that it isn't influenced by magnitude differences between the main stem and the GW wells.
+
+```{r}
+library(dplyr)
+
+# Standarize the time series into z scores
+z_score_ize <- function(list){
+ lapply(list, function(x){
+   # Find the mean and standard deviation value of the data
+   ts_mean <- mean(x$level_m)
+   ts_stde <- sd(x$level_m)
+   
+   # Convert to z-score (obs - mean) / sd
+   z_level <- (x$level_m - ts_mean) / ts_stde
+   
+   # Create new df
+   level <- data.frame(datetime = x$datetime, level_m = z_level)
+   return(level)
+  }) 
+}
+
+z_tmp1 <- z_score_ize(tmp1)
+z_tmp2 <- z_score_ize(tmp2)
+z_tmp3 <- z_score_ize(tmp3)
+z_tmp4 <- z_score_ize(tmp4)
+z_tmp5 <- z_score_ize(tmp5)
+
+# Run linear models with varying time lags for river water level
+# Output should be a measure of RMSE by well and lag time
+# Or maybe just return the lag that had the smallest RMSE
+
+# Site names for wells
+wells <- c("HA02", "HA12", "HA15", "HA10", "HA08", "HA07")
+id    <- c(1:5)
+
+# Testing
+ls <- z_tmp1
+i  <- 6
+l  <- 3
+
+find_lag <- function(ls){
+  # Iterate over the gw wells, elements 2:7 in each list
+  well_lags <- lapply(c(2:7), function(i){
+    # The number of lags to be tried
+    lags <- c(0:24)
+    
+    sw <- ls[[1]]
+    gw <- ls[[i]]
+    
+    # Ensure that the datetimes of obervations lines up between sw and gw dataframes
+    merged_data <- merge(sw[, c("datetime", "level_m")], gw[, c("datetime", "level_m")], by = "datetime", all = TRUE)
+    num_row <- nrow(merged_data)
+    
+    gw_lag <- sapply(lags, function(l){
+      # Run the linear model, predict GW level from river water level
+      lm_lag <- lm(merged_data[1:(num_row-l), 2] ~ merged_data[(1+l):num_row, 3])
+      
+      # Extract the model R^2
+      r_squ <- round(summary(lm_lag)$r.squared, 3)
+      #df <- tibble(r_squ)
+      return(r_squ)
+    })
+    
+    # Merge together results for the 25 lags (include lag = 0)
+    #well_lags <- do.call(max, gw_lag)
+    #df <- tibble(well_lags)
+    #return(df)
+    best_fit <- max(gw_lag)
+    best_lag <- lags[match(best_fit, gw_lag)]
+    well <- wells[i-1]
+    df <- data.frame(well, lag = best_lag, r_squ = best_fit, rank = i-1)
+    return(df)
+  })
+  
+  # Merge columns together to get the R square for each well
+  # all_well_lags <- do.call(cbind, well_lags)
+  all_well_lags <- do.call(rbind, well_lags)
+  
+  #rownames(all_well_lags) <- lags
+  
+  #colnames(all_well_lags) <- c("HA02", "HA12", "HA15", "HA10", "HA08", "HA07")
+  
+  return(all_well_lags)
+}
+
+lag1 <- find_lag(tmp1)
+lag2 <- find_lag(tmp2)
+lag3 <- find_lag(tmp3)
+lag4 <- find_lag(tmp4)
+lag5 <- find_lag(tmp5)
+
+all_lag <- rbind(lag1, lag2, lag3, lag4, lag5)
+
+mean_lag <- all_lag %>%
+  group_by(rank) %>%
+  summarise(mean_lag = mean(lag),
+            se_lag = sd(lag)/sqrt(n()))
+
+# Make plot
+png("./Figures/Flood Figures/GW Mean Lag Time_2020-03-20.png", units = "in", res = 150, width = 7, height = 4)
+par(mfrow = c(1,1), mar = c(4,6,1,1), oma = c(0,0,0,0))
+plot(mean_lag$rank, mean_lag$mean_lag, pch = 19, bg = "grey", xlab = "", ylab = "",
+        xlim = c(0.5, 6.5), ylim = c(0,7), xaxt = "n", cex = 1.5)
+with(mean_lag, arrows(rank, mean_lag-se_lag, rank, mean_lag+se_lag, code = 3, angle = 90))
+axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
+     las=1, adj=0)
+title(ylab = "Lag (Mean +/- SE) Relative to Main Stem (hr)", line = 2.5)
+title(xlab = "Rank Distance from Main Stem", line = 4.5)
+dev.off()
+
+
+##############################################################
+
+# How does the lag time change with a larger chunk of data?
+
+# Here are the sampled periods used above
+# tmp1 <- flood_finder("2017-03-08", "2017-03-25")
+# tmp2 <- flood_finder("2016-10-06", "2016-10-14")
+# tmp3 <- flood_finder("2014-04-01", "2014-04-18")
+# tmp4 <- flood_finder("2014-04-25", "2014-05-10")
+# tmp5 <- flood_finder("2014-11-26", "2014-12-10")
+
+# Expand these intervals to include two months with the focal flood roughly in the center of that data
+tmp1 <- flood_finder("2017-02-01", "2017-04-01")
+tmp2 <- flood_finder("2016-09-01", "2016-11-01")
+tmp3 <- flood_finder("2014-03-01", "2014-05-01")
+tmp4 <- flood_finder("2014-04-01", "2014-06-01")
+tmp5 <- flood_finder("2014-11-01", "2015-01-01")
+
+lag1 <- find_lag(tmp1)
+lag2 <- find_lag(tmp2)
+lag3 <- find_lag(tmp3)
+lag4 <- find_lag(tmp4)
+lag5 <- find_lag(tmp5)
+
+all_lag <- rbind(lag1, lag2, lag3, lag4, lag5)
+
+mean_lag <- all_lag %>%
+  group_by(rank) %>%
+  summarise(mean_lag = mean(lag),
+            se_lag = sd(lag)/sqrt(n()))
+
+# Make plot
+png("./Figures/Flood Figures/GW Mean Lag Time_2month_2020-03-20.png", units = "in", res = 150, width = 7, height = 4)
+par(mfrow = c(1,1), mar = c(4,6,1,1), oma = c(0,0,0,0))
+plot(mean_lag$rank, mean_lag$mean_lag, pch = 19, bg = "grey", xlab = "", ylab = "",
+        xlim = c(0.5, 6.5), ylim = c(0,7), xaxt = "n", cex = 1.5)
+with(mean_lag, arrows(rank, mean_lag-se_lag, rank, mean_lag+se_lag, code = 3, angle = 90))
+axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
+     las=1, adj=0)
+title(ylab = "Lag (Mean +/- SE) Relative to Main Stem (hr)", line = 2.5)
+title(xlab = "Rank Distance from Main Stem", line = 4.5)
+dev.off()
+
+
+########################################################
+
+# What if I expand the window to 1 year?
+tmp1 <- flood_finder("2012-01-01", "2012-12-31")
+tmp2 <- flood_finder("2013-01-01", "2013-12-31")
+tmp3 <- flood_finder("2014-01-01", "2014-12-31")
+tmp4 <- flood_finder("2015-01-01", "2015-12-31")
+tmp5 <- flood_finder("2016-01-01", "2016-12-31")
+tmp6 <- flood_finder("2017-01-01", "2017-12-31")
+tmp7 <- flood_finder("2018-01-01", "2018-12-31")
+tmp8 <- flood_finder("2019-01-01", "2019-12-31")
+
+lag1 <- find_lag(tmp1)
+lag2 <- find_lag(tmp2)
+lag3 <- find_lag(tmp3)
+lag4 <- find_lag(tmp4)
+lag5 <- find_lag(tmp5)
+lag6 <- find_lag(tmp6)
+lag7 <- find_lag(tmp7)
+lag8 <- find_lag(tmp8)
+
+all_lag <- rbind(lag1, lag2, lag3, lag4, lag5)
+
+mean_lag <- all_lag %>%
+  group_by(rank) %>%
+  summarise(mean_lag = mean(lag),
+            se_lag = sd(lag)/sqrt(n()))
+
+# Make plot
+png("./Figures/Flood Figures/GW Mean Lag Time_1year_2020-03-20.png", units = "in", res = 150, width = 7, height = 4)
+par(mfrow = c(1,1), mar = c(4,6,1,1), oma = c(0,0,0,0))
+plot(mean_lag$rank, mean_lag$mean_lag, pch = 19, bg = "grey", xlab = "", ylab = "",
+        xlim = c(0.5, 6.5), ylim = c(0,7), xaxt = "n", cex = 1.5)
+with(mean_lag, arrows(rank, mean_lag-se_lag, rank, mean_lag+se_lag, code = 3, angle = 90))
+axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
+     las=1, adj=0)
+title(ylab = "Lag (Mean +/- SE) Relative to Main Stem (hr)", line = 2.5)
+title(xlab = "Rank Distance from Main Stem", line = 4.5)
+dev.off()
+
+
+```
+

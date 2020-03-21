@@ -668,19 +668,26 @@ gw_lags <- function(start_date, end_date){
   # Find the corresponding time of max level in GW wells
   # Add the difference between the baseline and the max
   for(i in 1:7){
-    temp <- level[[i]][level[[i]]$datetime >= start & level[[i]]$datetime <= end,]
-    ini_lev <- temp$level_m[1]
-    max_lev <- max(na.omit(temp$level_m))
+    l.temp <- level[[i]][level[[i]]$datetime >= start & level[[i]]$datetime <= end,]
+    ini_lev <- l.temp$level_m[1]
+    max_lev <- max(na.omit(l.temp$level_m))
     chg     <- max_lev - ini_lev
     max_t <- temp[match(max_lev, temp$level_m), "datetime"]
     ifelse(i == 1, max_time <- max_t, max_time[i] <- max_t)
     ifelse(i == 1, chg_lev <- chg, chg_lev[i] <- chg)
-  }
+    
+    c.temp <- cond[[i]][cond[[i]]$datetime >= start & cond[[i]]$datetime <= end,]
+    ini_cond <- c.temp$cond[1]
+    max_abs  <- max(abs(c.temp$cond))
+    max_cond <- ifelse()
+    }
+  
   
   # Create df of lag times
   lag_hr <- as.numeric(difftime(max_time, casc_time_max, units = "hours"))
   lags   <- data.frame(sensor = sensor[1:7], max_time, lag_hr, 
-                       date = as.Date(max_time), level_chg = chg_lev)
+                       date = as.Date(max_time), level_chg = chg_lev,
+                       cond_chg = chg_cond)
   
   return(lags)
   print(lags)
@@ -786,6 +793,8 @@ title(main = "Floods where HA07 or HA08 Lag Time", outer = TRUE,
 title(main = " > 0", cex.main = 1, font = 1)
 dev.off()
 
+
+# Figure of change in water level across wells and main stem
 png("./Figures/Flood Figures/Well Water Level Change Boxplot.png", 
            units = "in", res = 150, width = 5, height = 4)
 par(mfrow = c(1,1), mar = c(4,6,1,1), oma = c(0,0,0,0))
