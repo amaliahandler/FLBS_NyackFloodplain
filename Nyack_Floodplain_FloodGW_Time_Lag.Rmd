@@ -58,6 +58,10 @@ names(level) <- sensor
 # Set par
 par(mfrow = c(1,1), mar = c(4,4,1,1))
 
+# Testing
+start_date <- "2017-03-08"
+end_date <- "2017-03-25"
+
 flood_finder <- function(start_date, end_date){
   # Define period of time containing flood
   start <- as.POSIXct(start_date)
@@ -69,7 +73,7 @@ flood_finder <- function(start_date, end_date){
   # Plot the water level at CASC to see if baseflow prior to flood, rising limb, and falling limb are included in the subset
   with(sub_lvl[[1]], plot(datetime, level_m, pch = 19))
   
-  return(complete.cases(sub_lvl))
+  return(sub_lvl)
 }
 
 # Potential sample periods with example floods
@@ -88,55 +92,10 @@ Experiment with the Savitzky-Golay smoothing filters to detect floods in the mai
 ```{r}
 library(signal)
 
-# sgolay and sgolayfilt
-sgolay(tmp2[[1]]$level_m[1:189], p = 3)
-
-bf <- butter(5,1/3)
-x <- c(rep(0,15), rep(10, 10), rep(0, 15))
-sg <- sgolayfilt(x)
-plot(sg, type="l")
-lines(filtfilt(rep(1, 5)/5,1,x), col = "red") # averaging filter
-lines(filtfilt(bf,x), col = "blue")           # butterworth
-points(x, pch = "x")                          # original data
-
-sgolayfilt(tmp2[[1]]$level_m)
-plot(tmp2[[1]]$level_m)
-points(sgolayfilt(tmp2[[1]]$level_m), pch = ".", cex = 3)
-
-sgolay(tmp2[[1]]$level_m, n = 9)
-
-set.seed(99)
-n <- 100
-x <- (1:n) / n
-clean.data <- ((exp(1.2*x)+1.5*sin(7*x))-1)/3
- 
-df <- data.frame(
-    x = x,
-    clean = clean.data,
-    noisy = clean.data + rnorm(n, 0, 0.12)
-)
-
-sg <- sgolay(p=2, n=19, m=0)
-dim(sg)
-
-df$sg <- filter(sg, df$noisy)
-
-plot(df$noisy)
-lines(df$sg)
-
-sgd <- sgolay(p=2, n=19, m=1)
-df$sgd <- filter(sgd, df$noisy)
-
-plot(df$sgd)
-
-par(mfrow=c(2,1))
-
-plot(df$noisy)
-lines(df$sg)
-
-plot(df$sgd)
-abline(h=0)
-
+# Savitsky-Golay filter settings
+# p - order of polynomial line fit
+# n - number of observations in the window (must be odd)
+# m - derivative order to be returned of the fitted line
 sg <- sgolay(p = 3, n = 9, m = 0)
 sgd <- sgolay(p = 3, n = 9, m = 1)
 sga <- sgolay(p = 3, n = 9, m = 2)
@@ -145,24 +104,28 @@ t_smooth <- filter(sg, tmp2[[1]]$level_m)
 t_derv   <- filter(sgd, tmp2[[1]]$level_m)
 t_acc    <- filter(sga, tmp2[[1]]$level_m)
 
-plot(tmp2[[1]]$level_m)
-lines(t_smooth, col = "blue")
-abline(v = match(max(tmp2[[1]]$level_m), tmp2[[1]]$level_m))
+# Stiffen the derivative filter
+sg <- sgolay(p = 3, n = 17, m = 0)
+sgd <- sgolay(p = 3, n = 17, m = 1)
 
-plot(t_derv)
-abline(h = 0, col = "blue")
-abline(v = match(max(tmp2[[1]]$level_m), tmp2[[1]]$level_m))
-
-plot(t_acc)
-abline(h = 0, col = "blue")
-abline(v = match(max(tmp2[[1]]$level_m), tmp2[[1]]$level_m))
-
-
-# Make a function for the process
+# Function for applying the filter to the example data
 # Try setting a TH for the derivative
 # Try looking at the distribution of the derivitives
 # Try flagging values above the some percentile slope
 # Try calculating the 2nd derivative to calculate acceleration
+# Try applying a secondary filter where if 8/10 observations are above the TH, then flag as a flood
+
+# Testing
+df <- tmp2[[1]]
+start_flood_obs <- 75
+
+# Set the TH parameters for flood rising limb detection
+p <- 0.85 # percentile threshold for first derivative
+w <- 9    # window of observation to consider
+n <- 6    # number of observations that must meet the threshold
+
+# Set par
+par(mfrow = c(2,1), oma = c(0.1,0.1,0.1,0.1), mar = c(2,4,0.3,0.5))
 
 plot_sg <- function(df, start_flood_obs){
   y <- df$level_m
@@ -172,30 +135,39 @@ plot_sg <- function(df, start_flood_obs){
   t_derv   <- filter(sgd, y)
   t_acc    <- filter(sga, y)
   
-  q <- as.numeric(quantile(t_derv, 0.85))
+  q <- as.numeric(quantile(t_derv, p))
+
+  # Create flag based on a moving look at observations
+  flag <- sapply(((w-1)/2+1):(length(t_derv)-((w-1)/2+1)), function(i){
+    above_q <- t_derv[(i-((w-1)/2)):(i+((w-1)/2))] > q
+    n_true  <- length(above_q[above_q])
+    ifelse(n_true >= n, 1, 0)
+  })
   
-  # Plot data
-  plot(x, y)
-  lines(t_smooth, col = "blue")
-  #abline(v = match(max(x), x))
+  flag <- c(rep(NA, ((w-1)/2)), flag, rep(NA, ((w-1)/2+1)))
+  
+  # Plot data (raw)
+  plot(x, y, xlab = '', ylab = "Water Level (m)", xaxt = 'n')
+  points(x, t_smooth, col = "blue", pch = 19, cex = 1)
   abline(v = x[start_flood_obs])
-  #points(x[t_derv > 0.001], y[t_derv > 0.001], col = "blue")
-  points(x[t_derv > q], y[t_derv > q], col = "blue")
+  # Flag points that meet the threshold
+  points(x[flag == 1], y[flag == 1], col = "blue")
   
   # Plot 1st derivative (slope)
-  plot(x, t_derv)
+  plot(x, t_derv, ylab = "1st Derivative", xlab = '')
   abline(h = 0, col = "blue")
-  #abline(v = match(max(x), x))
   abline(v = x[start_flood_obs])
-  #points(x[t_derv > 0.001], t_derv[t_derv > 0.001], col = "blue")
-  points(x[t_derv > q], t_derv[t_derv > q], col = "blue")
+  points(x[flag == 1], t_derv[flag == 1], col = "blue")
   
   # Plot 2nd derivative (acceleration)
   # plot(x, t_acc)
   # abline(v = x[start_flood_obs])
+  # points(x[flag == 1], t_acc[flag == 1], col = "blue")
   
+  # Add the flag to the flood water level
+  # df$flag <- flag
   
-  return(q)
+  #return(df)
 }
 
 plot_sg(tmp1[[1]], 160)
@@ -215,17 +187,84 @@ Using a threshold percentile value for the first derivative does a decent job at
 
 Might consider experimenting with a moving average approach to identify where the flood start occurs. Same for when a flood ends: If the slope stays the same for move than i observations, then it's just flood recession and not longer an active flood. Maybe consider not qualitying the end of the flood, because that is a lot harder and more nuanced. Getting the start time and the peak time will have to do for now (and will enable me to get a questions about the magnitude of disturbance).
 
+Looks like using a moving average is a decent approach, but is very sensitive to the window of time included in the analysis since it uses a pecentile threshold. Found that using a window of 9 observations of the 1st derivative and saying that if at least 6 of these is above the 85th percentile of 1st derivative values, then the center observation of the window is flagged as part of the flood rising limb. 
+
 Using the first derivative to identify the peak of the flood works well. 
 
 The second derivative is not super informative and does not add much info to the analysis.
 
-Maybe try using a secondary filter like: If 8/10 observations in a row are above the 1st deirvative TH, then it is likely part of a flood.
+
+```{r}
+# Based on lessons learned above, use a roving window to identify floods
+
+sg <- sgolay(p = 3, n = 9, m = 0)
+sgd <- sgolay(p = 3, n = 9, m = 1)
+sga <- sgolay(p = 3, n = 9, m = 2)
+
+# Think about
+# Minimum increase in water level to detect potential flood
+
+# Make a function for the process
+# Try setting a TH for the derivative
+# Try looking at the distribution of the derivitives
+# Try flagging values above the some percentile slope
+# Try calculating the 2nd derivative to calculate acceleration
+# Try applying a secondary filter where if 8/10 observations are above the TH, then flag as a flood
+
+# Testing
+df <- tmp1[[1]]
+start_flood_obs <- 160
+
+plot_sg <- function(df, start_flood_obs){
+  y <- df$level_m
+  x <- df$datetime
+  
+  t_smooth <- filter(sg, y)
+  t_derv   <- filter(sgd, y)
+  
+  q <- as.numeric(quantile(t_derv, 0.85))
+
+  # Create flag based on a moving look at observations
+  flag <- sapply(6:(length(t_derv)-6), function(i){
+    above_q <- t_derv[(i-4):(i+4)] > q
+    n_true  <- length(above_q[above_q])
+    ifelse(n_true >= 6, 1, 0)
+  })
+  
+  flag <- c(rep(NA, 4), flag, rep(NA, 5))
+  
+  # Plot data (raw)
+  plot(x, y, xlab = '', ylab = "Discharge")
+  lines(t_smooth, col = "blue")
+  abline(v = x[start_flood_obs])
+  # Flag points that meet the threshold
+  points(x[flag == 1], y[flag == 1], col = "blue")
+  
+  # Plot 1st derivative (slope)
+  plot(x, t_derv)
+  abline(h = 0, col = "blue")
+  abline(v = x[start_flood_obs])
+  points(x[flag == 1], t_derv[flag == 1], col = "blue")
+  
+  return(q)
+}
+
+plot_sg(tmp1[[1]], 160)
+plot_sg(tmp2[[1]], 75)
+plot_sg(tmp3[[1]], 175)
+plot_sg(tmp4[[1]], 140)
+plot_sg(tmp5[[1]], 25)
+
+
+```
 
 
 
 Now play around with building linear models with different lags
 
-May need to consider standardizing the water level info so that it isn't influenced by magnitude differences between the main stem and the GW wells.
+May need to consider standardizing the water level info so that it isn't influenced by magnitude differences between the main stem and the GW wells. 
+
+Tried the z-score approach, turns out that it doesn't affect the fit.
 
 ```{r}
 library(dplyr)
