@@ -77,11 +77,12 @@ flood_finder <- function(start_date, end_date){
 }
 
 # Potential sample periods with example floods
-tmp1 <- flood_finder("2017-03-08", "2017-03-25")
+tmp1 <- flood_finder("2017-03-08", "2017-03-18")
 tmp2 <- flood_finder("2016-10-06", "2016-10-14")
 tmp3 <- flood_finder("2014-04-01", "2014-04-18")
 tmp4 <- flood_finder("2014-04-25", "2014-05-10")
 tmp5 <- flood_finder("2014-11-26", "2014-12-10")
+tmp6 <- flood_finder("2017-03-18", "2017-03-30")
 
 ```
 
@@ -90,6 +91,7 @@ Experiment with the Savitzky-Golay smoothing filters to detect floods in the mai
 
 
 ```{r}
+detach("package:dplyr", unload = TRUE)
 library(signal)
 
 # Savitsky-Golay filter settings
@@ -104,10 +106,6 @@ t_smooth <- filter(sg, tmp2[[1]]$level_m)
 t_derv   <- filter(sgd, tmp2[[1]]$level_m)
 t_acc    <- filter(sga, tmp2[[1]]$level_m)
 
-# Stiffen the derivative filter
-sg <- sgolay(p = 3, n = 17, m = 0)
-sgd <- sgolay(p = 3, n = 17, m = 1)
-
 # Function for applying the filter to the example data
 # Try setting a TH for the derivative
 # Try looking at the distribution of the derivitives
@@ -115,26 +113,29 @@ sgd <- sgolay(p = 3, n = 17, m = 1)
 # Try calculating the 2nd derivative to calculate acceleration
 # Try applying a secondary filter where if 8/10 observations are above the TH, then flag as a flood
 
-# Testing
-df <- tmp2[[1]]
-start_flood_obs <- 75
-
 # Set the TH parameters for flood rising limb detection
 p <- 0.85 # percentile threshold for first derivative
 w <- 9    # window of observation to consider
 n <- 6    # number of observations that must meet the threshold
 
+# Set the SG filter parameters
+sg <- sgolay(p = 3, n = 17, m = 0)
+sgd <- sgolay(p = 3, n = 17, m = 1)
+
 # Set par
 par(mfrow = c(2,1), oma = c(0.1,0.1,0.1,0.1), mar = c(2,4,0.3,0.5))
 
-plot_sg <- function(df, start_flood_obs){
-  y <- df$level_m
-  x <- df$datetime
-  
-  t_smooth <- filter(sg, y)
-  t_derv   <- filter(sgd, y)
-  t_acc    <- filter(sga, y)
-  
+# Function testing
+sw_gw_list <- tmp2
+start_flood_obs <- 165
+
+# Function identifies and isolates rising limb of flood base on the threshold for the main stem of the stream, then subsets data from the groundwater for the same period plus 24 hours.
+plot_sg <- function(sw_gw_list, start_flood_obs){
+  # Filter the mainstem water trace based on the Savitsky-Golay filter
+  df <- sw_gw_list[[1]]
+  t_smooth <- filter(sg, df$level_m)
+  t_derv   <- filter(sgd, df$level_m)
+ 
   q <- as.numeric(quantile(t_derv, p))
 
   # Create flag based on a moving look at observations
@@ -144,38 +145,63 @@ plot_sg <- function(df, start_flood_obs){
     ifelse(n_true >= n, 1, 0)
   })
   
+  # Make a vector of flag data
   flag <- c(rep(NA, ((w-1)/2)), flag, rep(NA, ((w-1)/2+1)))
+  
+  # Add the flag to the flood water level
+  df$flag <- flag
+  df$derv <- t_derv
+  
+  # Get the flag to include the peak of the flood
+  # Subset to oberservations that come after the first flag
+  first_flag <- min(df$datetime[which(df$flag == 1)])
+  sub <- df[df$datetime >= first_flag,]
+  
+ # After all flagged observations, find the place where the first derivative crosses zero
+  peak_flow <- min(sub$datetime[which(sub$derv < 0)]) - 60*60
+  
+  # Flag all observations between the first flag and peak flow should be flagged as part of the rising limb of the flood
+  sub$flag[sub$datetime >= first_flag & sub$datetime <= peak_flow] <- 1
+  
+  # Add this flag back to the main df
+  df$flag[df$datetime >= first_flag] <- sub$flag
+  
+  # Plot it out
+  y <- df$level_m
+  x <- df$datetime
+  flag <- df$flag
+  derv <- df$derv
   
   # Plot data (raw)
   plot(x, y, xlab = '', ylab = "Water Level (m)", xaxt = 'n')
-  points(x, t_smooth, col = "blue", pch = 19, cex = 1)
+  # points(x, t_smooth, col = "blue", pch = 19, cex = 1)
   abline(v = x[start_flood_obs])
   # Flag points that meet the threshold
-  points(x[flag == 1], y[flag == 1], col = "blue")
+  points(x[flag == 1], t_smooth[flag == 1], pch = 19, col = "blue")
   
   # Plot 1st derivative (slope)
-  plot(x, t_derv, ylab = "1st Derivative", xlab = '')
+  plot(x, derv, ylab = "1st Derivative", xlab = '')
   abline(h = 0, col = "blue")
   abline(v = x[start_flood_obs])
-  points(x[flag == 1], t_derv[flag == 1], col = "blue")
+  points(x[flag == 1], derv[flag == 1], col = "blue")
+  abline(h = q, col = "blue")
   
-  # Plot 2nd derivative (acceleration)
-  # plot(x, t_acc)
-  # abline(v = x[start_flood_obs])
-  # points(x[flag == 1], t_acc[flag == 1], col = "blue")
-  
-  # Add the flag to the flood water level
-  # df$flag <- flag
-  
-  #return(df)
+  # Return just the rising limb of the flood plus 24 hours for the GW
+  rising_limb <- lapply(sw_gw_list, function(x){
+    x[x$datetime >= first_flag & x$datetime <= (peak_flow + 24*60*60),]
+  })
+  # rising_limb <- df[which(df$flag == 1),]
+  return(rising_limb)
 }
 
-plot_sg(tmp1[[1]], 160)
-plot_sg(tmp2[[1]], 75)
-plot_sg(tmp3[[1]], 175)
-plot_sg(tmp4[[1]], 140)
-plot_sg(tmp5[[1]], 25)
+# Need to alter the function such that the output is the rising limb in the surface water plus the same datetimes in each of the groundwater wells plus 24 hours (since this is the cap I am applying to lag times for now)
 
+r1 <- plot_sg(tmp1, 160)
+r2 <- plot_sg(tmp2, 75)
+r3 <- plot_sg(tmp3, 175)
+r4 <- plot_sg(tmp4, 140)
+r5 <- plot_sg(tmp5, 25)
+r6 <- plot_sg(tmp6, 10)
 
 ```
 
@@ -194,102 +220,22 @@ Using the first derivative to identify the peak of the flood works well.
 The second derivative is not super informative and does not add much info to the analysis.
 
 
-```{r}
-# Based on lessons learned above, use a roving window to identify floods
-
-sg <- sgolay(p = 3, n = 9, m = 0)
-sgd <- sgolay(p = 3, n = 9, m = 1)
-sga <- sgolay(p = 3, n = 9, m = 2)
-
-# Think about
-# Minimum increase in water level to detect potential flood
-
-# Make a function for the process
-# Try setting a TH for the derivative
-# Try looking at the distribution of the derivitives
-# Try flagging values above the some percentile slope
-# Try calculating the 2nd derivative to calculate acceleration
-# Try applying a secondary filter where if 8/10 observations are above the TH, then flag as a flood
-
-# Testing
-df <- tmp1[[1]]
-start_flood_obs <- 160
-
-plot_sg <- function(df, start_flood_obs){
-  y <- df$level_m
-  x <- df$datetime
-  
-  t_smooth <- filter(sg, y)
-  t_derv   <- filter(sgd, y)
-  
-  q <- as.numeric(quantile(t_derv, 0.85))
-
-  # Create flag based on a moving look at observations
-  flag <- sapply(6:(length(t_derv)-6), function(i){
-    above_q <- t_derv[(i-4):(i+4)] > q
-    n_true  <- length(above_q[above_q])
-    ifelse(n_true >= 6, 1, 0)
-  })
-  
-  flag <- c(rep(NA, 4), flag, rep(NA, 5))
-  
-  # Plot data (raw)
-  plot(x, y, xlab = '', ylab = "Discharge")
-  lines(t_smooth, col = "blue")
-  abline(v = x[start_flood_obs])
-  # Flag points that meet the threshold
-  points(x[flag == 1], y[flag == 1], col = "blue")
-  
-  # Plot 1st derivative (slope)
-  plot(x, t_derv)
-  abline(h = 0, col = "blue")
-  abline(v = x[start_flood_obs])
-  points(x[flag == 1], t_derv[flag == 1], col = "blue")
-  
-  return(q)
-}
-
-plot_sg(tmp1[[1]], 160)
-plot_sg(tmp2[[1]], 75)
-plot_sg(tmp3[[1]], 175)
-plot_sg(tmp4[[1]], 140)
-plot_sg(tmp5[[1]], 25)
-
-
-```
-
+############################################################
 
 
 Now play around with building linear models with different lags
 
-May need to consider standardizing the water level info so that it isn't influenced by magnitude differences between the main stem and the GW wells. 
 
-Tried the z-score approach, turns out that it doesn't affect the fit.
+
+
+Run time lag models for just the rising limb of the flood
 
 ```{r}
+# Just the rising limb
+
+# Note that the signal package interfers with dplyr and so has to be removed before proceeding
+detach("package:signal", unload = TRUE)
 library(dplyr)
-
-# Standarize the time series into z scores
-z_score_ize <- function(list){
- lapply(list, function(x){
-   # Find the mean and standard deviation value of the data
-   ts_mean <- mean(x$level_m)
-   ts_stde <- sd(x$level_m)
-   
-   # Convert to z-score (obs - mean) / sd
-   z_level <- (x$level_m - ts_mean) / ts_stde
-   
-   # Create new df
-   level <- data.frame(datetime = x$datetime, level_m = z_level)
-   return(level)
-  }) 
-}
-
-z_tmp1 <- z_score_ize(tmp1)
-z_tmp2 <- z_score_ize(tmp2)
-z_tmp3 <- z_score_ize(tmp3)
-z_tmp4 <- z_score_ize(tmp4)
-z_tmp5 <- z_score_ize(tmp5)
 
 # Run linear models with varying time lags for river water level
 # Output should be a measure of RMSE by well and lag time
@@ -300,7 +246,111 @@ wells <- c("HA02", "HA12", "HA15", "HA10", "HA08", "HA07")
 id    <- c(1:5)
 
 # Testing
-ls <- z_tmp1
+ls <- r1
+i  <- 6
+l  <- 3
+
+find_lag <- function(ls){
+  # Iterate over the gw wells, elements 2:7 in each list
+  well_lags <- lapply(c(2:7), function(i){
+    # The number of lags to be tried
+    lags <- c(0:24)
+    
+    sw <- ls[[1]]
+    gw <- ls[[i]]
+    
+    # Ensure that the datetimes of obervations lines up between sw and gw dataframes
+    sw_gw <- merge(sw[, c("datetime", "level_m")], gw[, c("datetime", "level_m")], by = "datetime", all = TRUE)
+    num_row <- nrow(sw_gw)
+    
+    # Isolate surface water rising limb
+    end_rising_limb <- max(sw_gw$datetime) - 24*60*60
+    sw_rising_limb  <- sw_gw[sw_gw$datetime <= end_rising_limb, 2]
+    
+    gw_lag <- sapply(lags, function(l){
+      # Run the linear model, predict GW level from river water level
+      # Always use the same window of observations associated with the surface water rising limb of the flood. Only the window of observations from the groundwater will change as the size of the lag increases.
+      # Rising limb of the SW is always going to be the daterange of the df minus 24 hours
+
+      # Isolate GW window
+      gw_srt <- sw_gw$datetime[1] + l * 60*60
+      gw_end <- end_rising_limb + l * 60*60
+      gw_win <- sw_gw[sw_gw$datetime >= gw_srt & sw_gw$datetime <= gw_end, 3]
+      lm_lag <- lm(gw_win ~ sw_rising_limb)
+      
+      # Extract the model R^2
+      r_squ <- round(summary(lm_lag)$r.squared, 3)
+      return(r_squ)
+    })
+    
+    # Merge together results for the 25 lags (include lag = 0)
+    #well_lags <- do.call(max, gw_lag)
+    #df <- tibble(well_lags)
+    #return(df)
+    best_fit <- max(gw_lag)
+    best_lag <- lags[match(best_fit, gw_lag)]
+    well <- wells[i-1]
+    df <- data.frame(well, lag = best_lag, r_squ = best_fit, rank = i-1)
+    return(df)
+  })
+  
+  # Merge columns together to get the R square for each well
+  # all_well_lags <- do.call(cbind, well_lags)
+  all_well_lags <- do.call(rbind, well_lags)
+  
+  #rownames(all_well_lags) <- lags
+  
+  #colnames(all_well_lags) <- c("HA02", "HA12", "HA15", "HA10", "HA08", "HA07")
+  
+  return(all_well_lags)
+}
+
+lag1 <- find_lag(tmp1)
+lag2 <- find_lag(tmp2)
+lag3 <- find_lag(tmp3)
+lag4 <- find_lag(tmp4)
+lag5 <- find_lag(tmp5)
+lag6 <- find_lag(tmp6)
+
+all_lag <- rbind(lag1, lag2, lag3, lag4, lag5, lag6)
+
+mean_lag <- all_lag %>%
+  group_by(rank) %>%
+  summarise(mean_lag = mean(lag),
+            sd_lag = sd(lag))
+
+# Make plot
+png("./Figures/Flood Figures/GW Mean Lag Time_2020-03-20.png", units = "in", res = 150, width = 7, height = 4)
+par(mfrow = c(1,1), mar = c(4,6,1,1), oma = c(0,0,0,0))
+plot(mean_lag$rank, mean_lag$mean_lag, pch = 19, bg = "grey", xlab = "", ylab = "",
+        xlim = c(0.5, 6.5), ylim = c(-2,8), xaxt = "n", cex = 1.5)
+with(mean_lag, arrows(rank, mean_lag-sd_lag, rank, mean_lag+sd_lag, code = 3, angle = 90))
+axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
+     las=1, adj=0)
+title(ylab = "Lag (Mean +/- SE) Relative to Main Stem (hr)", line = 2.5)
+title(xlab = "Rank Distance from Main Stem", line = 4.5)
+dev.off()
+
+
+```
+
+
+Relate the whole window in SW to GW level data
+
+```{r}
+detach("package:signal", unload = TRUE)
+library(dplyr)
+
+# Run linear models with varying time lags for river water level
+# Output should be a measure of RMSE by well and lag time
+# Or maybe just return the lag that had the smallest RMSE
+
+# Site names for wells
+wells <- c("HA02", "HA12", "HA15", "HA10", "HA08", "HA07")
+id    <- c(1:5)
+
+# Testing
+ls <- tmp1
 i  <- 6
 l  <- 3
 
@@ -319,7 +369,7 @@ find_lag <- function(ls){
     
     gw_lag <- sapply(lags, function(l){
       # Run the linear model, predict GW level from river water level
-      lm_lag <- lm(merged_data[1:(num_row-l), 2] ~ merged_data[(1+l):num_row, 3])
+      lm_lag <- lm(merged_data[1:(num_row-l), 3] ~ merged_data[(1+l):num_row, 2])
       
       # Extract the model R^2
       r_squ <- round(summary(lm_lag)$r.squared, 3)
@@ -354,8 +404,9 @@ lag2 <- find_lag(tmp2)
 lag3 <- find_lag(tmp3)
 lag4 <- find_lag(tmp4)
 lag5 <- find_lag(tmp5)
+lag6 <- find_lag(tmp6)
 
-all_lag <- rbind(lag1, lag2, lag3, lag4, lag5)
+all_lag <- rbind(lag1, lag2, lag3, lag4, lag5, lag6)
 
 mean_lag <- all_lag %>%
   group_by(rank) %>%
@@ -366,7 +417,7 @@ mean_lag <- all_lag %>%
 png("./Figures/Flood Figures/GW Mean Lag Time_2020-03-20.png", units = "in", res = 150, width = 7, height = 4)
 par(mfrow = c(1,1), mar = c(4,6,1,1), oma = c(0,0,0,0))
 plot(mean_lag$rank, mean_lag$mean_lag, pch = 19, bg = "grey", xlab = "", ylab = "",
-        xlim = c(0.5, 6.5), ylim = c(0,7), xaxt = "n", cex = 1.5)
+        xlim = c(0.5, 6.5), ylim = c(0,15), xaxt = "n", cex = 1.5)
 with(mean_lag, arrows(rank, mean_lag-se_lag, rank, mean_lag+se_lag, code = 3, angle = 90))
 axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
      las=1, adj=0)
