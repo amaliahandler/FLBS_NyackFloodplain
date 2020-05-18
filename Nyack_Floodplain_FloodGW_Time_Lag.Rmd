@@ -17,8 +17,8 @@ Note that the data used here has been QAQC'ed through removal of bad data associ
 # Load data
 options(stringsAsFactors = FALSE)
 
-cond  <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
-do    <- read.csv('./Data/Nyack_do_cleaned.csv', header = TRUE)
+# cond  <- read.csv('./Data/Nyack_cond_cleaned.csv', header = TRUE)
+# do    <- read.csv('./Data/Nyack_do_cleaned.csv', header = TRUE)
 level <- read.csv('./Data/Nyack_level_cleaned.csv', header = TRUE)
 
 ```
@@ -91,7 +91,7 @@ Experiment with the Savitzky-Golay smoothing filters to detect floods in the mai
 
 
 ```{r}
-detach("package:dplyr", unload = TRUE)
+# detach("package:dplyr", unload = TRUE)
 library(signal)
 
 # Savitsky-Golay filter settings
@@ -203,6 +203,65 @@ r4 <- plot_sg(tmp4, 140)
 r5 <- plot_sg(tmp5, 25)
 r6 <- plot_sg(tmp6, 10)
 
+sw_gw_list <- tmp1
+
+# Get the 1st derviative values for the rising limbs
+get_derv <- function(sw_gw_list){
+  # Filter the mainstem water trace based on the Savitsky-Golay filter
+  df <- sw_gw_list[[1]]
+  t_smooth <- filter(sg, df$level_m)
+  t_derv   <- filter(sgd, df$level_m)
+ 
+  q <- as.numeric(quantile(t_derv, p))
+
+  # Create flag based on a moving look at observations
+  flag <- sapply(((w-1)/2+1):(length(t_derv)-((w-1)/2+1)), function(i){
+    above_q <- t_derv[(i-((w-1)/2)):(i+((w-1)/2))] > q
+    n_true  <- length(above_q[above_q])
+    ifelse(n_true >= n, 1, 0)
+  })
+  
+  # Make a vector of flag data
+  flag <- c(rep(NA, ((w-1)/2)), flag, rep(NA, ((w-1)/2+1)))
+  
+  # Add the flag to the flood water level
+  df$flag <- flag
+  df$derv <- t_derv
+  
+  # Get the flag to include the peak of the flood
+  # Subset to oberservations that come after the first flag
+  first_flag <- min(df$datetime[which(df$flag == 1)])
+  sub <- df[df$datetime >= first_flag,]
+  
+ # After all flagged observations, find the place where the first derivative crosses zero
+  peak_flow <- min(sub$datetime[which(sub$derv < 0)]) - 60*60
+  
+  # Flag all observations between the first flag and peak flow should be flagged as part of the rising limb of the flood
+  sub$flag[sub$datetime >= first_flag & sub$datetime <= peak_flow] <- 1
+  
+  # Add this flag back to the main df
+  df$flag[df$datetime >= first_flag] <- sub$flag
+  
+  # Return the mean of the 1st derivative of the rising limb
+  rising_limb <- df$derv[df$datetime >= first_flag & df$datetime <= peak_flow]
+  geom_mean   <- geoMean(rising_limb)
+  rise_time   <- difftime(peak_flow, first_flag, units = "hours")
+  return(rise_time)
+}
+
+get_derv(tmp1)
+get_derv(tmp2)
+get_derv(tmp3)
+get_derv(tmp4)
+get_derv(tmp5)
+get_derv(tmp6)
+
+mean(sapply(list(tmp1,tmp2,tmp3,tmp4,tmp5,tmp6), function(x){
+  get_derv(x)
+}))
+
+nrow(tmp6[[1]])
+
 ```
 
 Stuff learned so far
@@ -284,9 +343,6 @@ find_lag <- function(ls){
     })
     
     # Merge together results for the 25 lags (include lag = 0)
-    #well_lags <- do.call(max, gw_lag)
-    #df <- tibble(well_lags)
-    #return(df)
     best_fit <- max(gw_lag)
     best_lag <- lags[match(best_fit, gw_lag)]
     well <- wells[i-1]
@@ -295,22 +351,17 @@ find_lag <- function(ls){
   })
   
   # Merge columns together to get the R square for each well
-  # all_well_lags <- do.call(cbind, well_lags)
   all_well_lags <- do.call(rbind, well_lags)
-  
-  #rownames(all_well_lags) <- lags
-  
-  #colnames(all_well_lags) <- c("HA02", "HA12", "HA15", "HA10", "HA08", "HA07")
   
   return(all_well_lags)
 }
 
-lag1 <- find_lag(tmp1)
-lag2 <- find_lag(tmp2)
-lag3 <- find_lag(tmp3)
-lag4 <- find_lag(tmp4)
-lag5 <- find_lag(tmp5)
-lag6 <- find_lag(tmp6)
+lag1 <- find_lag(r1)
+lag2 <- find_lag(r2)
+lag3 <- find_lag(r3)
+lag4 <- find_lag(r4)
+lag5 <- find_lag(r5)
+lag6 <- find_lag(r6)
 
 all_lag <- rbind(lag1, lag2, lag3, lag4, lag5, lag6)
 
@@ -320,19 +371,126 @@ mean_lag <- all_lag %>%
             sd_lag = sd(lag))
 
 # Make plot
-png("./Figures/Flood Figures/GW Mean Lag Time_2020-03-20.png", units = "in", res = 150, width = 7, height = 4)
+png("./Figures/Flood Figures/GW Mean Lag Time_2020-05-07.png", units = "in", res = 150, width = 7, height = 4)
 par(mfrow = c(1,1), mar = c(4,6,1,1), oma = c(0,0,0,0))
 plot(mean_lag$rank, mean_lag$mean_lag, pch = 19, bg = "grey", xlab = "", ylab = "",
-        xlim = c(0.5, 6.5), ylim = c(-2,8), xaxt = "n", cex = 1.5)
+        xlim = c(0.5, 6.5), ylim = c(-2,18), xaxt = "n", cex = 1.5)
 with(mean_lag, arrows(rank, mean_lag-sd_lag, rank, mean_lag+sd_lag, code = 3, angle = 90))
 axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10','5: HA08','6: HA07'),
      las=1, adj=0)
-title(ylab = "Lag (Mean +/- SE) Relative to Main Stem (hr)", line = 2.5)
+title(ylab = "Lag (Mean +/- SD) Relative to Main Stem (hr)", line = 2.5)
 title(xlab = "Rank Distance from Main Stem", line = 4.5)
 dev.off()
 
+```
+
+
+Test how the lag times are affected by matching different information between surface and groundwater.
+- Peak time of flood
+- Time of max slope in rising limb
+
+```{r}
+# Use the output of the rising limb function to find the time of peak flow and max rate of increase on the mainstem and the GW wells.
+library(signal)
+
+sw_gw_list <- r1
+i <- 3
+
+peak_flow_lags <- function(sw_gw_list){
+  
+  sw <- sw_gw_list[[1]]
+  
+  # Find the peak flow in the mainstem
+  sw_max_lvl <- max(sw$datetime) - 24*60*60
+  
+  # Calulate the derivative of the mainstem water level
+  sw_derv <- filter(sgd, sw$level_m[sw$datetime <= sw_max_lvl])
+  
+  # Find the max rate of increase in mainstem
+  sw_max_inc <- sw$datetime[match(max(sw_derv), sw_derv)]
+  
+  # Now find the corresponding numbers for the groundwater wells and calculate the lag time between the surface and the groundwater and calculate the lag time
+  gw_lag <- lapply(2:7, function(i){
+      gw <- sw_gw_list[[i]]
+      
+      # Subset the gw df to include the period 0-24 from the peak metrics for the mainstem
+      gw_lvl <- gw[gw$datetime >= sw_max_lvl & gw$datetime <= (sw_max_lvl + 24*60*60),]
+      gw_inc <- gw[gw$datetime >= sw_max_inc & gw$datetime <= (sw_max_inc + 24*60*60),]
+      
+      # Find time of max gw level
+      gw_max_lvl <- gw_lvl$datetime[match(max(gw_lvl$level_m), gw_lvl$level_m)]
+    
+      # Calculate the derivative of the gw level
+      gw_derv <- filter(sgd, gw_inc$level_m)
+      
+      # Find the max gw rate of increase
+      gw_max_inc <- gw_inc$datetime[match(max(gw_derv), gw_derv)]
+      
+      # Now calculate the lag times between the sw and gw
+      lvl_lag <- as.numeric(difftime(gw_max_lvl, sw_max_lvl, units = "hours"))
+      inc_lag <- as.numeric(difftime(gw_max_inc, sw_max_inc, units = "hours"))
+      
+      # Return the lag times with the GW well number
+      res <- data.frame(rank = i, peak_level_lag = lvl_lag, peak_rate_lag = inc_lag)
+      return(res)
+  })
+  do.call(rbind, gw_lag)
+}
+
+
+pt1 <- peak_flow_lags(r1)
+pt2 <- peak_flow_lags(r2)
+pt3 <- peak_flow_lags(r3)
+pt4 <- peak_flow_lags(r4)
+pt5 <- peak_flow_lags(r5)
+pt6 <- peak_flow_lags(r6)
+
+pt_lags <- rbind(pt1, pt2, pt3, pt4, pt5, pt6)
+detach("package:signal", unload = TRUE)
+library(dplyr)
+
+mean_lag <- pt_lags %>%
+  group_by(rank) %>%
+  summarise_each(list(mean = mean, sd = sd))
+
+mean_lag$rank <- mean_lag$rank - 1
+
+# Make plot of lags with respect to peak water level
+png("./Figures/Flood Figures/Mean Lag Time for Peak Water Level_2020-05-12.png", units = "in", res = 150, width = 7, height = 4)
+par(mfrow = c(1,1), mar = c(4,6,2,1), oma = c(0,0,0,0))
+plot(mean_lag$rank, mean_lag$peak_level_lag_mean, pch = 19, 
+     bg = "grey", xlab = "", ylab = "", xlim = c(0.5, 6.5), 
+     ylim = c(-2,18), xaxt = "n", cex = 1.5)
+with(mean_lag, arrows(rank, peak_level_lag_mean-peak_level_lag_sd, 
+                      rank, peak_level_lag_mean+peak_level_lag_sd, 
+                      code = 3, angle = 90))
+axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10',
+                            '5: HA08','6: HA07'), las=1, adj=0)
+title(ylab = "Lag (Mean +/- SD) Relative to Main Stem (hr)", line = 2.5)
+title(xlab = "Rank Distance from Main Stem", line = 2.5)
+title(main = 'Mean Lag Time for Peak Water Level', cex.main = 1)
+dev.off()
+
+
+# Make plot of lags with respect to peak rate of increase in water level
+png("./Figures/Flood Figures/Mean Lag Time for Peak Rate of Increase_2020-05-12.png", units = "in", res = 150, width = 7, height = 4)
+par(mfrow = c(1,1), mar = c(4,6,2,1), oma = c(0,0,0,0))
+plot(mean_lag$rank, mean_lag$peak_rate_lag_mean, pch = 19, 
+     bg = "grey", xlab = "", ylab = "", xlim = c(0.5, 6.5), 
+     ylim = c(-5,20), xaxt = "n", cex = 1.5)
+with(mean_lag, arrows(rank, peak_rate_lag_mean-peak_rate_lag_sd, 
+                      rank, peak_rate_lag_mean+peak_rate_lag_sd, 
+                      code = 3, angle = 90))
+axis(1, at=c(1:6), labels=c('1: HA02','2: HA12','3: HA15','4: HA10',
+                            '5: HA08','6: HA07'), las=1, adj=0)
+title(ylab = "Lag (Mean +/- SD) Relative to Main Stem (hr)", line = 2.5)
+title(xlab = "Rank Distance from Main Stem", line = 2.5)
+title(main = 'Mean Lag Time for Peak Rate of Increase', cex.main = 1)
+dev.off()
 
 ```
+
+
 
 
 Relate the whole window in SW to GW level data
