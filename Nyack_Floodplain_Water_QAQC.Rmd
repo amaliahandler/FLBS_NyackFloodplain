@@ -26,7 +26,7 @@ library(tibbletime)
 
 ha_water <- readRDS('./Data/HA_Water_Data_Compiled.rds')
 
-# Explanation of column names and units. See metadata for further explanation.
+# Explanation of column names and units in raw data.
 # site              Code referring to location of sensors (HA02, HA08, etc.)
 # sensor_number     Number referring to the specific set of sensors (01, 02,.. 09)
 # datetime          Date and time of data collection
