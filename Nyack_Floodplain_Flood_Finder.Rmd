@@ -76,7 +76,7 @@ sgd <- sgolay(p = 3, n = 17, m = 1)
 # Calculate the 1st derivative of the main stem water level
 m_derv <- filter(sgd, lvl_14$level_m)
 
-# Set the threshold for flaggin
+# Set the threshold for flagging obsevations of the first derivative
 TH <- 0.0092
 
 # Flag observations over the threshold
@@ -84,7 +84,7 @@ lvl_14$flood_flag <- 0
 lvl_14$flood_flag[m_derv >= TH] <- 1
 
 # Plot it out
-par(mar = c(4,4,1,1))
+par(mar = c(4,4,1,1), mfrow = c(1,1))
 plot(lvl_14$datetime, lvl_14$level_m, pch = 19, cex = 0.5)
 points(lvl_14$datetime[m_derv >= TH], lvl_14$level_m[m_derv >= TH], pch = 19, cex = 0.5, col = 'blue')
 
@@ -101,7 +101,28 @@ lines(tmp$datetime, tmp$smooth)
 plot(tmp$datetime, tmp$derv, pch = 19, cex = 0.5)
 points(tmp$datetime[tmp$derv >= TH], tmp$derv[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
 
+tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-03-01') & lvl_14$datetime <= as.POSIXct('2014-03-13'),]
+
+par(mfrow = c(2,1), mar = c(2,2,1,1))
+plot(tmp$datetime, tmp$level_m, pch = 19, cex = 0.5)
+points(tmp$datetime[tmp$derv >= TH], tmp$level_m[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
+lines(tmp$datetime, tmp$smooth)
+
+plot(tmp$datetime, tmp$derv, pch = 19, cex = 0.5)
+points(tmp$datetime[tmp$derv >= TH], tmp$derv[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
+
+tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-10-15') & lvl_14$datetime <= as.POSIXct('2014-11-15'),]
+
+par(mfrow = c(2,1), mar = c(2,2,1,1))
+plot(tmp$datetime, tmp$level_m, pch = 19, cex = 0.5)
+points(tmp$datetime[tmp$derv >= TH], tmp$level_m[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
+lines(tmp$datetime, tmp$smooth)
+
+plot(tmp$datetime, tmp$derv, pch = 19, cex = 0.5)
+points(tmp$datetime[tmp$derv >= TH], tmp$derv[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
+
 # Looks like an additional filter is needed to prevent a few observations from being flagged
+
 # Also need a filter to remove the situations where observation around missing data are flagged. Work on this first.
 
 tmp <- tmp[order(tmp$datetime),]
@@ -111,10 +132,77 @@ tmp$flag[tmp$derv >= TH] <- 1
 
 tmp[50:150,c('datetime','level_m','derv','flag')]
 
+# Filter does not work with NA values
 r <- rnorm(100)
 r[50:55] <- NA
 filter(sgd, r)
 
+row <- match(as.POSIXct('2014-10-20 17:00:00', tz = 'MST'), tmp$datetime)
+tmp[175:225, c('datetime','level_m','derv','flood_flag')]
+# Maybe specify that if more than 4 hrs of data are missing, ignore the 24 hour period preceeding and following the missing data.
+
+# Calculate the time difference between observations
+time_gap <- difftime(lvl_14$datetime[-1], lvl_14$datetime[-length(lvl_14$datetime)], units = "hours")
+
+gap_flag <- sapply(1:length(time_gap), function(i){
+  print(i)
+  gap_flag <- NA
+  if(time_gap[i] > 3){
+    gap_flag[(i-24):(i+24)] <- 1
+  } else {gap_flag[i] <- 0}
+})
+
+gap_flag[nrow(lvl_14)] <- NA
+
+# So what happens now if the observations close to a gap are ignored?
+par(mar = c(4,4,1,1), mfrow = c(1,1))
+plot(lvl_14$datetime, lvl_14$level_m, pch = 19, cex = 0.5)
+points(lvl_14$datetime[m_derv >= TH & gap_flag == 0], lvl_14$level_m[m_derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue')
+
+# Look at the smaller chunks
+lvl_14$gap_flag <- gap_flag
+tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-02-25') & lvl_14$datetime <= as.POSIXct('2014-03-05'),]
+
+# Chunk without time gaps
+par(mfrow = c(2,1), mar = c(2,2,1,1))
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
+# Also no gaps, just sudden jumps in water level
+tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-03-01') & lvl_14$datetime <= as.POSIXct('2014-03-13'),]
+
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
+# Find the gap
+tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-10-15') & lvl_14$datetime <= as.POSIXct('2014-11-15'),]
+
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
+# How many gaps are there?
+difftime(tmp$datetime[nrow(tmp)], tmp$datetime[1], units = "hours")
+nrow(tmp)
+# So there is 745 hrs included in this period, but only 258 observations
+
+exp <- tmp[tmp$datetime > as.POSIXct("2014-10-22"),]
+dplyr::select(exp, datetime, gap_flag)
+# My current code only flags the observation with the gap in time, all observations before and after are overwritten with the else term.
 
 ```
 
