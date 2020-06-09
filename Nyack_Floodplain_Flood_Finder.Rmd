@@ -144,15 +144,13 @@ tmp[175:225, c('datetime','level_m','derv','flood_flag')]
 # Calculate the time difference between observations
 time_gap <- difftime(lvl_14$datetime[-1], lvl_14$datetime[-length(lvl_14$datetime)], units = "hours")
 
-gap_flag <- sapply(1:length(time_gap), function(i){
-  print(i)
-  gap_flag <- NA
+gap_flag <- rep(0, nrow(lvl_14))
+
+for(i in 1:length(time_gap)){
   if(time_gap[i] > 3){
     gap_flag[(i-24):(i+24)] <- 1
-  } else {gap_flag[i] <- 0}
-})
-
-gap_flag[nrow(lvl_14)] <- NA
+    }
+}
 
 # So what happens now if the observations close to a gap are ignored?
 par(mar = c(4,4,1,1), mfrow = c(1,1))
@@ -163,7 +161,7 @@ points(lvl_14$datetime[m_derv >= TH & gap_flag == 0], lvl_14$level_m[m_derv >= T
 lvl_14$gap_flag <- gap_flag
 tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-02-25') & lvl_14$datetime <= as.POSIXct('2014-03-05'),]
 
-# Chunk without time gaps
+# Chunk with time gaps in floods
 par(mfrow = c(2,1), mar = c(2,2,1,1))
 with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
 with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
@@ -195,6 +193,16 @@ with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
 with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
 with(tmp, lines(datetime, smooth))
 
+tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-05-30') & lvl_14$datetime <= as.POSIXct('2014-06-30'),]
+
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
+with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
+with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
+with(tmp, lines(datetime, smooth))
+
 # How many gaps are there?
 difftime(tmp$datetime[nrow(tmp)], tmp$datetime[1], units = "hours")
 nrow(tmp)
@@ -203,6 +211,37 @@ nrow(tmp)
 exp <- tmp[tmp$datetime > as.POSIXct("2014-10-22"),]
 dplyr::select(exp, datetime, gap_flag)
 # My current code only flags the observation with the gap in time, all observations before and after are overwritten with the else term.
+
+# Now require another filter that removes instances where only a few observations are flagged 
+
+# Break up the timeseries into chunks. The chunks will begin when an observation meets the derivative TH and is not flagged for being near missing data. Chunks end when at the first observation that has a negative dervative.
+
+# A possible additional filter is to require more than 3 observations that meet the rising limb flood requirements
+
+i <- 452
+
+lapply(1:nrow(lvl_14), function(i){
+  # Find rows that meet the TH requirement
+  
+  if(lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0){
+    # Find the peak flow associated with the flood by finding the first observation with a negative derivative
+    peak_flow <- with(lvl_14, min(datetime[which(datetime >= datetime[i] & derv < 0)])) - 60*60
+    
+    # Check if there are more than 3 flagged observations in the set
+    check <- nrow(lvl_14[lvl_14$datetime >= lvl_14$datetime[i] & lvl_14$datetime <= peak_flow & lvl_14$derv > TH & lvl_14$gap_flag == 0,]) > 3
+    
+    # If the check evaluates to TRUE, create a subset of the dataframe that is associated with the flood.
+    if(check == T){flood_sub <- lvl_14[lvl_14$datetime >= lvl_14$datetime[i] & lvl_14$datetime <= peak_flow,]}
+    
+    # Create the next point from which the evaluator should begin next
+    next_i <- match(peak_flow, lvl_14$datetime) + 1
+    
+    # Have to figure out how to change the starting point of the apply function. If it finds a flood, it should skip to the next_i so that I don't get multiple chunk associated with a single flood. But if it doesn't find a flood, it should continue iterating row by row.
+    
+    # Spoke to Katya. I need to do this by defining my list variables outside of the iterator which then set the conditions for how the iterator is run (skip mode or chunk finder).
+    
+  }
+})
 
 ```
 
