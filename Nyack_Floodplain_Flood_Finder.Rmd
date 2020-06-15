@@ -70,94 +70,118 @@ lvl_14 <- level[[1]][level[[1]]$datetime >= as.POSIXct('2014-01-01') & level[[1]
 # p - order of polynomial line fit
 # n - number of observations in the window (must be odd)
 # m - derivative order to be returned of the fitted line
+# Parameters to smooth the observations
 sg <- sgolay(p = 3, n = 17, m = 0)
+# Parameters to generate the 1st derivative of the observations
 sgd <- sgolay(p = 3, n = 17, m = 1)
+
+# Set the threshold for flagging obsevations of the first derivative. This threshold was developed based on testing with floods from the entire 2013-2019 water level dataset for the mainstem of the Middle Fork at Cascadilla.
+TH <- 0.0092
+
+# An additional filter is required to remove situations where there are observations that are flagged near missing data. 
+# Specify that if more than 4 hrs of data are missing, ignore the 24 hour period preceeding and following the missing data.
+# Set the number of hours of missing data and the range of time over which flood flags should be ignored near missing data
+missing_hrs     <- 4  # Hours 
+ignore_adjacent <- 24 # Hours
+
+# An additional filter is needed to remove instances where only a few observations are flagged 
+# Set the minimum number of observations required to be a flood
+minimum_obs <- 4
 
 # Calculate the 1st derivative of the main stem water level
 m_derv <- filter(sgd, lvl_14$level_m)
 
-# Set the threshold for flagging obsevations of the first derivative
-TH <- 0.0092
 
-# Flag observations over the threshold
-lvl_14$flood_flag <- 0
-lvl_14$flood_flag[m_derv >= TH] <- 1
 
-# Plot it out
-par(mar = c(4,4,1,1), mfrow = c(1,1))
-plot(lvl_14$datetime, lvl_14$level_m, pch = 19, cex = 0.5)
-points(lvl_14$datetime[m_derv >= TH], lvl_14$level_m[m_derv >= TH], pch = 19, cex = 0.5, col = 'blue')
 
-# An additional filter is required to remove situations where there are observations that are flagged near missing data. 
-# Specify that if more than 4 hrs of data are missing, ignore the 24 hour period preceeding and following the missing data.
 
-# Calculate the time difference between observations
-time_gap <- difftime(lvl_14$datetime[-1], lvl_14$datetime[-length(lvl_14$datetime)], units = "hours")
 
-gap_flag <- rep(0, nrow(lvl_14))
 
-for(i in 1:length(time_gap)){
-  if(time_gap[i] > 3){
-    gap_flag[(i-24):(i+24)] <- 1
-    }
-}
 
-# An additional filter is needed to remove instances where only a few observations are flagged 
 
 # Break up the timeseries into chunks. The chunks will begin when an observation meets the derivative TH and is not flagged for being near missing data. Chunks end when at the first observation that has a negative dervative.
 
 # An additional filter is to require more than 3 observations that meet the rising limb flood requirements
 
-# Set the range of data
-r <- 1:nrow(lvl_14)
 
-skip_to <- 1
-floods <- lapply(r, function(i){
-  before <- (paste('Start:', skip_to))
-  row_n <- (paste('Row:', i))
-
-  # Check if criteria are met
-  criteria_check <- (lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0 & i >= skip_to)
+flood_finder <- function(water_level_df){
+  # Rename the df
+  lvl <- water_level_df
   
-  # The chunk finder only runs if the criteria are met
-  if(criteria_check){
-    # Find the peak flow associated with the flood by finding the first observation with a negative derivative
-    peak_flow <- with(lvl_14, min(datetime[which(datetime >= datetime[i] & derv < 0)])) - 60*60
+  # Use the SG filter to smooth the data and calculate the 1st derivaive
+  lvl_smooth <- filter(sg, lvl$level_m)
+  lvl$derv   <- filter(sgd, lvl$level_m)
+  
+  # Apply the filter associatated with gaps in observations. 
+  # Calculate the time difference between observations
+  time_gap <- difftime(lvl$datetime[-1], lvl$datetime[-length(lvl$datetime)], units = "hours")
+  
+  lvl$gap_flag <- rep(0, nrow(lvl))
+  
+  for(i in 1:length(time_gap)){
+    if(time_gap[i] >= missing_hrs){
+      lvl$gap_flag[(i-ignore_adjacent):(i+ignore_adjacent)] <- 1
+    }
+  }
+  
+  # Set the skip_to object value to 1 so it will always start at the first row of the df
+  assign("skip_to", 1, envir = .GlobalEnv)
+  
+  # Identify floods based on the 1st derivative, considering additional filters for missing data, minmum number of observations, etc.
+  floods <- lapply(1:nrow(lvl), function(i){
+    # Tracking, helps identify problems with the skip_to object value
+    # before <- (paste('Start:', skip_to))
+    # row_n <- (paste('Row:', i))
     
-    # Subset the flood chunk
-    flood_sub <- lvl_14[lvl_14$datetime >= lvl_14$datetime[i] &
-                            lvl_14$datetime <= peak_flow,]
+    # Check if criteria are met
+    criteria_check <- (lvl$derv[i] > TH & lvl$gap_flag[i] == 0 & i >= skip_to)
     
-    # Within the subset, check if more than 3 observations meet the criteria
-    min_obs_check <- nrow(flood_sub[flood_sub$derv > TH & flood_sub$gap_flag == 0,]) > 3
+    # The chunk finder only runs if the criteria are met
+    if(criteria_check){
+      # Find the peak flow associated with the flood by finding the first observation with a negative derivative
+      peak_flow <- with(lvl, min(datetime[which(datetime >= datetime[i] & derv < 0)])) - 60*60
+      
+      # Subset the flood chunk
+      flood_sub <- lvl[lvl$datetime >= lvl$datetime[i] & lvl$datetime <= peak_flow,]
+      
+      # Within the subset, check if more than 3 observations meet the criteria
+      min_obs_check <- nrow(flood_sub[flood_sub$derv > TH & flood_sub$gap_flag == 0,]) >= minimum_obs
+      
+      if(min_obs_check == F){flood_sub <- NULL}
+      
+      # Create the next point from which the evaluator should begin next
+      next_i <- match(peak_flow, lvl_14$datetime) + 1
+      
+      # Assign the next row to start the check process to the global environment
+      assign("skip_to", next_i, envir = .GlobalEnv)
+    } else {flood_sub <- NULL} # If no flood is found, return null
     
-    if(min_obs_check == F){flood_sub <- NULL}
+    # More tracking info, helps to diagnose issues with the skip_to object
+    # after <- (paste('End:', skip_to))
+    # print(paste(row_n, before, after, sep = ', '))
+    return(flood_sub)
+  })
+  
+  # Remove all null objects from the list, only retaining objects that contain floods
+  floods <- floods[-which(sapply(floods, is.null))]
+  
+  # Return the flood chunks
+  return(floods)
+}
 
-    # Create the next point from which the evaluator should begin next
-    next_i <- match(peak_flow, lvl_14$datetime) + 1
-    
-    # Assign the next row to start the check process to the global environment
-    assign("skip_to", next_i, envir = .GlobalEnv)
-  } else {flood_sub <- NULL}
-
-  after <- (paste('End:', skip_to))
-  print(paste(row_n, before, after, sep = ', '))
-  return(flood_sub)
-})
-
-# Remove all null objects from the list, only retaining objects that contain floods
-floods <- floods[-which(sapply(floods, is.null))]
+# Try it out to see if it identifies the same number of floods now that all the processing has been moved into the function.
+test <- level[[1]][level[[1]]$datetime >= as.POSIXct('2014-01-01') & level[[1]]$datetime <= as.POSIXct('2014-12-31'),]
+floods_2014 <- flood_finder(test)
 
 # Get the start date for each of the floods identified
-flood_first_date <- lapply(floods, function(x){
+flood_first_date <- lapply(floods_2014, function(x){
   x$datetime[1]
 })
-
-# Plot the time series
 
 # Use to alter the range of observations plotted
 r <- 7000:nrow(lvl_14)
 
+# Now I need to think about how to visualize the findings of the flood finder
 par(mfrow = c(1,1))
 # Plot the raw observations
 plot(lvl_14$datetime[r], lvl_14$level_m[r], pch = 19, cex = 0.5)
