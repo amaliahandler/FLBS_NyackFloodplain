@@ -218,30 +218,125 @@ dplyr::select(exp, datetime, gap_flag)
 
 # A possible additional filter is to require more than 3 observations that meet the rising limb flood requirements
 
-i <- 452
+# Create a list where the flood data can be appended
+floods  <- list(NA)
+skip_to <- 1
 
-lapply(1:nrow(lvl_14), function(i){
+
+# This is a row that will prompt the flood finder for testing
+i <- 861
+i <- 1
+
+skip_to <- 1
+floods <- lapply(859:862, function(i){
+  before <- skip_to
   # Find rows that meet the TH requirement
-  
-  if(lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0){
+  # Rows must meet the 1st derivative threshold and are not flagged for being near a gap in data. Rows must also be greater than or equal to next_i (skip_to in the global environment)
+  run_func <- (lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0 & i >= skip_to)
+  if(lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0 & i >= skip_to){
+    # check1 <- 'The chunk finder is running'
     # Find the peak flow associated with the flood by finding the first observation with a negative derivative
     peak_flow <- with(lvl_14, min(datetime[which(datetime >= datetime[i] & derv < 0)])) - 60*60
     
     # Check if there are more than 3 flagged observations in the set
-    check <- nrow(lvl_14[lvl_14$datetime >= lvl_14$datetime[i] & lvl_14$datetime <= peak_flow & lvl_14$derv > TH & lvl_14$gap_flag == 0,]) > 3
+    check <- nrow(lvl_14[lvl_14$datetime >= lvl_14$datetime[i] &
+                           lvl_14$datetime <= peak_flow & 
+                           lvl_14$derv > TH &
+                           lvl_14$gap_flag == 0,]) > 3
     
     # If the check evaluates to TRUE, create a subset of the dataframe that is associated with the flood.
-    if(check == T){flood_sub <- lvl_14[lvl_14$datetime >= lvl_14$datetime[i] & lvl_14$datetime <= peak_flow,]}
+    if(check == T){
+      flood_sub <- lvl_14[lvl_14$datetime >= lvl_14$datetime[i] &
+                            lvl_14$datetime <= peak_flow,]
+      # check2 <- 'Found a chunk > 3 observations'
+      return(c(run_func, 'Chunck finder running, found chunk > 3 obs'))
+      #return(flood_sub)
+    } else {return(c(run_func,'Chunck finder running, chunk was < 3 obs'))}  #else {return(NULL)}
     
     # Create the next point from which the evaluator should begin next
     next_i <- match(peak_flow, lvl_14$datetime) + 1
     
-    # Have to figure out how to change the starting point of the apply function. If it finds a flood, it should skip to the next_i so that I don't get multiple chunk associated with a single flood. But if it doesn't find a flood, it should continue iterating row by row.
-    
-    # Spoke to Katya. I need to do this by defining my list variables outside of the iterator which then set the conditions for how the iterator is run (skip mode or chunk finder).
-    
-  }
+    # Assign the next row to start the check process to the global environment
+    assign("skip_to", next_i, envir = .GlobalEnv)
+  } else {return(c(run_func,'The chunk finder is NOT running'))} #else {return(NULL)}
+  skip_chg <- paste('Before/after skip val:', before, skip_to)
+  #return(c(i, run_func, skip_chg))
+  # return(c(check1, check2))
 })
+
+# Remove the null components of the list
+floods <- floods[-which(sapply(floods, is.null))]
+
+# Currently, the skip_to piece is not working and the process is running even for subsequent rows even when a chunk has been identified
+
+   # Have to figure out how to change the starting point of the apply function. If it finds a flood, it should skip to the next_i so that I don't get multiple chunk associated with a single flood. But if it doesn't find a flood, it should continue iterating row by row.
+    
+    # Spoke to Katya. I need to do this by defining my list variables outside of the iterator which then set the conditions for how the iterator is run (skip mode or chunk finder). I can append the chunks to a list outside and reset a value associated with the next interation to start evaluating a chunk.
+    
+    # From looking around online, it seems the assigning variables from the local scope to the global environment is poor form (although I don't really understand why). So I think I need to make this function hierarchical. The first level defines the larger chunk of data I'm working with (say, the year), then the second level drops down to iterate over the rows in the df. A return from this lower level is the chunk (if present) and the skip line.
+
+# Trying to workshop making this function fucking work
+# i <- 861
+# Test for a few different ranges
+r <- 2000:3000
+skip_to <- 1
+floods <- lapply(r, function(i){
+  before <- (paste('Start:', skip_to))
+  row_n <- (paste('Row:', i))
+  # print(lvl_14$derv[i] > TH)
+  # print(lvl_14$gap_flag[i] == 0)
+  # print(i >= skip_to)
+  # Check if criteria are met
+  criteria_check <- (lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0 & i >= skip_to)
+  
+  # The chunk finder only runs if the criteria are met
+  if(criteria_check){
+    # Find the peak flow associated with the flood by finding the first observation with a negative derivative
+    peak_flow <- with(lvl_14, min(datetime[which(datetime >= datetime[i] & derv < 0)])) - 60*60
+    
+    # Subset the flood chunk
+    flood_sub <- lvl_14[lvl_14$datetime >= lvl_14$datetime[i] &
+                            lvl_14$datetime <= peak_flow,]
+    
+    # Within the subset, check if more than 3 observations meet the criteria
+    min_obs_check <- nrow(flood_sub[flood_sub$derv > TH & flood_sub$gap_flag == 0,]) > 3
+    
+    if(min_obs_check == F){flood_sub <- NULL}
+    #   #return(c(criteria_check, min_obs_check, 'Found a flood w/ >3 obs'))
+    # } else {('False statement')} # return(c(criteria_check, min_obs_check, 'Flood was <3 obs'))
+
+    # Create the next point from which the evaluator should begin next
+    next_i <- match(peak_flow, lvl_14$datetime) + 1
+    
+    # Assign the next row to start the check process to the global environment
+    assign("skip_to", next_i, envir = .GlobalEnv)
+  } else {flood_sub <- NULL}
+  # return(c(criteria_check, min_obs_check, 'Flood was <3 obs'))} 
+  # return(c(criteria_check,min_obs_check))
+  after <- (paste('End:', skip_to))
+  print(paste(row_n, before, after, sep = ', '))
+  return(flood_sub)
+})
+
+floods <- floods[-which(sapply(floods, is.null))]
+flood_first_date <- lapply(floods, function(x){
+  x$datetime[1]
+})
+
+# Could it finally be working?
+r <- 2750:3000
+plot(lvl_14$datetime[r], lvl_14$level_m[r], pch = 19, cex = 0.5)
+with(lvl_14[r,], points(datetime[derv > TH & gap_flag == 0], level_m[derv > TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
+with(lvl_14[r,], lines(datetime, smooth))
+lapply(flood_first_date, function(x){abline(v = x)})
+
+# Play around with assigning a variable inside a function to the global environment
+test <- function(x){
+  assign("skip_to", x, envir = .GlobalEnv)
+}
+
+test(1)
+
 
 ```
 
