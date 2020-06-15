@@ -63,7 +63,7 @@ Flag all instances where the 1st derivative exceeds the threshold (make it so th
 ```{r}
 library(signal)
 
-# SUbset to 2014
+# Subset to 2014
 lvl_14 <- level[[1]][level[[1]]$datetime >= as.POSIXct('2014-01-01') & level[[1]]$datetime <= as.POSIXct('2014-12-31'),]
 
 # Savitsky-Golay filter settings
@@ -88,58 +88,8 @@ par(mar = c(4,4,1,1), mfrow = c(1,1))
 plot(lvl_14$datetime, lvl_14$level_m, pch = 19, cex = 0.5)
 points(lvl_14$datetime[m_derv >= TH], lvl_14$level_m[m_derv >= TH], pch = 19, cex = 0.5, col = 'blue')
 
-# Plot a smaller time-chunk
-lvl_14$derv <- m_derv
-lvl_14$smooth <- filter(sg, lvl_14$level_m)
-tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-02-25') & lvl_14$datetime <= as.POSIXct('2014-03-05'),]
-
-par(mfrow = c(2,1), mar = c(2,2,1,1))
-plot(tmp$datetime, tmp$level_m, pch = 19, cex = 0.5)
-points(tmp$datetime[tmp$derv >= TH], tmp$level_m[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
-lines(tmp$datetime, tmp$smooth)
-
-plot(tmp$datetime, tmp$derv, pch = 19, cex = 0.5)
-points(tmp$datetime[tmp$derv >= TH], tmp$derv[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
-
-tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-03-01') & lvl_14$datetime <= as.POSIXct('2014-03-13'),]
-
-par(mfrow = c(2,1), mar = c(2,2,1,1))
-plot(tmp$datetime, tmp$level_m, pch = 19, cex = 0.5)
-points(tmp$datetime[tmp$derv >= TH], tmp$level_m[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
-lines(tmp$datetime, tmp$smooth)
-
-plot(tmp$datetime, tmp$derv, pch = 19, cex = 0.5)
-points(tmp$datetime[tmp$derv >= TH], tmp$derv[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
-
-tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-10-15') & lvl_14$datetime <= as.POSIXct('2014-11-15'),]
-
-par(mfrow = c(2,1), mar = c(2,2,1,1))
-plot(tmp$datetime, tmp$level_m, pch = 19, cex = 0.5)
-points(tmp$datetime[tmp$derv >= TH], tmp$level_m[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
-lines(tmp$datetime, tmp$smooth)
-
-plot(tmp$datetime, tmp$derv, pch = 19, cex = 0.5)
-points(tmp$datetime[tmp$derv >= TH], tmp$derv[tmp$derv >= TH], pch = 19, cex = 0.5, col = 'blue')
-
-# Looks like an additional filter is needed to prevent a few observations from being flagged
-
-# Also need a filter to remove the situations where observation around missing data are flagged. Work on this first.
-
-tmp <- tmp[order(tmp$datetime),]
-
-tmp$flag <- 0
-tmp$flag[tmp$derv >= TH] <- 1
-
-tmp[50:150,c('datetime','level_m','derv','flag')]
-
-# Filter does not work with NA values
-r <- rnorm(100)
-r[50:55] <- NA
-filter(sgd, r)
-
-row <- match(as.POSIXct('2014-10-20 17:00:00', tz = 'MST'), tmp$datetime)
-tmp[175:225, c('datetime','level_m','derv','flood_flag')]
-# Maybe specify that if more than 4 hrs of data are missing, ignore the 24 hour period preceeding and following the missing data.
+# An additional filter is required to remove situations where there are observations that are flagged near missing data. 
+# Specify that if more than 4 hrs of data are missing, ignore the 24 hour period preceeding and following the missing data.
 
 # Calculate the time difference between observations
 time_gap <- difftime(lvl_14$datetime[-1], lvl_14$datetime[-length(lvl_14$datetime)], units = "hours")
@@ -152,140 +102,20 @@ for(i in 1:length(time_gap)){
     }
 }
 
-# So what happens now if the observations close to a gap are ignored?
-par(mar = c(4,4,1,1), mfrow = c(1,1))
-plot(lvl_14$datetime, lvl_14$level_m, pch = 19, cex = 0.5)
-points(lvl_14$datetime[m_derv >= TH & gap_flag == 0], lvl_14$level_m[m_derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue')
-
-# Look at the smaller chunks
-lvl_14$gap_flag <- gap_flag
-tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-02-25') & lvl_14$datetime <= as.POSIXct('2014-03-05'),]
-
-# Chunk with time gaps in floods
-par(mfrow = c(2,1), mar = c(2,2,1,1))
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-# Also no gaps, just sudden jumps in water level
-tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-03-01') & lvl_14$datetime <= as.POSIXct('2014-03-13'),]
-
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-# Find the gap
-tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-10-15') & lvl_14$datetime <= as.POSIXct('2014-11-15'),]
-
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-tmp <- lvl_14[lvl_14$datetime >= as.POSIXct('2014-05-30') & lvl_14$datetime <= as.POSIXct('2014-06-30'),]
-
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH & gap_flag == 0], level_m[derv >= TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-with(tmp, plot(datetime, level_m, pch = 19, cex = 0.5))
-with(tmp, points(datetime[derv >= TH], level_m[derv >= TH], pch = 19, cex = 0.5, col = 'blue'))
-with(tmp, lines(datetime, smooth))
-
-# How many gaps are there?
-difftime(tmp$datetime[nrow(tmp)], tmp$datetime[1], units = "hours")
-nrow(tmp)
-# So there is 745 hrs included in this period, but only 258 observations
-
-exp <- tmp[tmp$datetime > as.POSIXct("2014-10-22"),]
-dplyr::select(exp, datetime, gap_flag)
-# My current code only flags the observation with the gap in time, all observations before and after are overwritten with the else term.
-
-# Now require another filter that removes instances where only a few observations are flagged 
+# An additional filter is needed to remove instances where only a few observations are flagged 
 
 # Break up the timeseries into chunks. The chunks will begin when an observation meets the derivative TH and is not flagged for being near missing data. Chunks end when at the first observation that has a negative dervative.
 
-# A possible additional filter is to require more than 3 observations that meet the rising limb flood requirements
+# An additional filter is to require more than 3 observations that meet the rising limb flood requirements
 
-# Create a list where the flood data can be appended
-floods  <- list(NA)
-skip_to <- 1
+# Set the range of data
+r <- 1:nrow(lvl_14)
 
-
-# This is a row that will prompt the flood finder for testing
-i <- 861
-i <- 1
-
-skip_to <- 1
-floods <- lapply(859:862, function(i){
-  before <- skip_to
-  # Find rows that meet the TH requirement
-  # Rows must meet the 1st derivative threshold and are not flagged for being near a gap in data. Rows must also be greater than or equal to next_i (skip_to in the global environment)
-  run_func <- (lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0 & i >= skip_to)
-  if(lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0 & i >= skip_to){
-    # check1 <- 'The chunk finder is running'
-    # Find the peak flow associated with the flood by finding the first observation with a negative derivative
-    peak_flow <- with(lvl_14, min(datetime[which(datetime >= datetime[i] & derv < 0)])) - 60*60
-    
-    # Check if there are more than 3 flagged observations in the set
-    check <- nrow(lvl_14[lvl_14$datetime >= lvl_14$datetime[i] &
-                           lvl_14$datetime <= peak_flow & 
-                           lvl_14$derv > TH &
-                           lvl_14$gap_flag == 0,]) > 3
-    
-    # If the check evaluates to TRUE, create a subset of the dataframe that is associated with the flood.
-    if(check == T){
-      flood_sub <- lvl_14[lvl_14$datetime >= lvl_14$datetime[i] &
-                            lvl_14$datetime <= peak_flow,]
-      # check2 <- 'Found a chunk > 3 observations'
-      return(c(run_func, 'Chunck finder running, found chunk > 3 obs'))
-      #return(flood_sub)
-    } else {return(c(run_func,'Chunck finder running, chunk was < 3 obs'))}  #else {return(NULL)}
-    
-    # Create the next point from which the evaluator should begin next
-    next_i <- match(peak_flow, lvl_14$datetime) + 1
-    
-    # Assign the next row to start the check process to the global environment
-    assign("skip_to", next_i, envir = .GlobalEnv)
-  } else {return(c(run_func,'The chunk finder is NOT running'))} #else {return(NULL)}
-  skip_chg <- paste('Before/after skip val:', before, skip_to)
-  #return(c(i, run_func, skip_chg))
-  # return(c(check1, check2))
-})
-
-# Remove the null components of the list
-floods <- floods[-which(sapply(floods, is.null))]
-
-# Currently, the skip_to piece is not working and the process is running even for subsequent rows even when a chunk has been identified
-
-   # Have to figure out how to change the starting point of the apply function. If it finds a flood, it should skip to the next_i so that I don't get multiple chunk associated with a single flood. But if it doesn't find a flood, it should continue iterating row by row.
-    
-    # Spoke to Katya. I need to do this by defining my list variables outside of the iterator which then set the conditions for how the iterator is run (skip mode or chunk finder). I can append the chunks to a list outside and reset a value associated with the next interation to start evaluating a chunk.
-    
-    # From looking around online, it seems the assigning variables from the local scope to the global environment is poor form (although I don't really understand why). So I think I need to make this function hierarchical. The first level defines the larger chunk of data I'm working with (say, the year), then the second level drops down to iterate over the rows in the df. A return from this lower level is the chunk (if present) and the skip line.
-
-# Trying to workshop making this function fucking work
-# i <- 861
-# Test for a few different ranges
-r <- 2000:3000
 skip_to <- 1
 floods <- lapply(r, function(i){
   before <- (paste('Start:', skip_to))
   row_n <- (paste('Row:', i))
-  # print(lvl_14$derv[i] > TH)
-  # print(lvl_14$gap_flag[i] == 0)
-  # print(i >= skip_to)
+
   # Check if criteria are met
   criteria_check <- (lvl_14$derv[i] > TH & lvl_14$gap_flag[i] == 0 & i >= skip_to)
   
@@ -302,8 +132,6 @@ floods <- lapply(r, function(i){
     min_obs_check <- nrow(flood_sub[flood_sub$derv > TH & flood_sub$gap_flag == 0,]) > 3
     
     if(min_obs_check == F){flood_sub <- NULL}
-    #   #return(c(criteria_check, min_obs_check, 'Found a flood w/ >3 obs'))
-    # } else {('False statement')} # return(c(criteria_check, min_obs_check, 'Flood was <3 obs'))
 
     # Create the next point from which the evaluator should begin next
     next_i <- match(peak_flow, lvl_14$datetime) + 1
@@ -311,32 +139,34 @@ floods <- lapply(r, function(i){
     # Assign the next row to start the check process to the global environment
     assign("skip_to", next_i, envir = .GlobalEnv)
   } else {flood_sub <- NULL}
-  # return(c(criteria_check, min_obs_check, 'Flood was <3 obs'))} 
-  # return(c(criteria_check,min_obs_check))
+
   after <- (paste('End:', skip_to))
   print(paste(row_n, before, after, sep = ', '))
   return(flood_sub)
 })
 
+# Remove all null objects from the list, only retaining objects that contain floods
 floods <- floods[-which(sapply(floods, is.null))]
+
+# Get the start date for each of the floods identified
 flood_first_date <- lapply(floods, function(x){
   x$datetime[1]
 })
 
-# Could it finally be working?
-r <- 2750:3000
+# Plot the time series
+
+# Use to alter the range of observations plotted
+r <- 7000:nrow(lvl_14)
+
+par(mfrow = c(1,1))
+# Plot the raw observations
 plot(lvl_14$datetime[r], lvl_14$level_m[r], pch = 19, cex = 0.5)
+# Highlight points flagged for being above the 1st derivative TH and not flagged for being near missing observations
 with(lvl_14[r,], points(datetime[derv > TH & gap_flag == 0], level_m[derv > TH & gap_flag == 0], pch = 19, cex = 0.5, col = 'blue'))
+# Add the smoothed line for the interpolation
 with(lvl_14[r,], lines(datetime, smooth))
+# Add vertical bars at the start of floods identified in the algorithm
 lapply(flood_first_date, function(x){abline(v = x)})
-
-# Play around with assigning a variable inside a function to the global environment
-test <- function(x){
-  assign("skip_to", x, envir = .GlobalEnv)
-}
-
-test(1)
-
 
 ```
 
