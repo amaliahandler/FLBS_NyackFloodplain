@@ -1,0 +1,12 @@
+keyword	keywordThesaurus
+Flathead Lake Biological Station	
+floodplain	https://vocab.lternet.edu/vocab/vocab/index.php
+meteorology	https://vocab.lternet.edu/vocab/vocab/index.php
+wind speed	https://vocab.lternet.edu/vocab/vocab/index.php
+wind direction	https://vocab.lternet.edu/vocab/vocab/index.php
+air temperature	https://vocab.lternet.edu/vocab/vocab/index.php
+soil temperature	https://vocab.lternet.edu/vocab/vocab/index.php
+rain	https://vocab.lternet.edu/vocab/vocab/index.php
+photosynthetically active radiation	https://vocab.lternet.edu/vocab/vocab/index.php
+soil water	https://vocab.lternet.edu/vocab/vocab/index.php
+atmospheric pressure	https://vocab.lternet.edu/vocab/vocab/index.php

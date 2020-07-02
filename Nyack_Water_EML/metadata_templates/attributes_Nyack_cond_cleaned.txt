@@ -1,0 +1,9 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+site	Site within the floodplain for the well	character				
+sensor_number	Refers to the specific sensor	character				
+datetime	Datetime of the observation	Date		YYYY-MM-DD hh:mm		
+cond	"Water specific conductivity, temperature corrected"	numeric	milliSiemens		-999	Bad data removed due to independent verification
+cond_temp	Water temperature as measured by the conductivity sensor	numeric	celsius		-999	Bad data removed due to independent verification
+ct	"Water specific conductivity, NOT for temperature"	numeric	milliSiemens		-999	Bad data removed due to independent verification
+cond_flag	Code indicating conductivity data is questionable	categorical			NA	No flag
+cond_temp_flag	Code indicating temperature data is questionable	categorical			NA	No flag

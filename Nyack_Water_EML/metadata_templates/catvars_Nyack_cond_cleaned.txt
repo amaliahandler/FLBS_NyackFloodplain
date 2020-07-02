@@ -1,0 +1,5 @@
+attributeName	code	definition
+cond_flag	1	Observation is potentially anomalous
+cond_flag	2	Observation is potentially anomalous due to silt accumulation in well
+cond_temp_flag	1	Observation is potentially anomalous
+cond_temp_flag	2	Observation is potentially anomalous due to silt accumulation in well

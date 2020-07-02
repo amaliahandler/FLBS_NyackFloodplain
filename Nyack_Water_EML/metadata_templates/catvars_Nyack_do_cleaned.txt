@@ -1,0 +1,9 @@
+attributeName	code	definition
+do_conc_flag	1	Observation is potentially anomalous
+do_conc_flag	2	Observation is potentially anomalous due to silt accumulation in well
+do_temp_flag	1	Observation is potentially anomalous
+do_temp_flag	2	Observation is potentially anomalous due to silt accumulation in well
+do_sat_flag	1	Observation is potentially anomalous
+do_sat_flag	2	Observation is potentially anomalous due to silt accumulation in well
+do_sat_flag	4	Observation was manually calculated using local barometric pressure data
+do_sat_flag	5	Observation was calculated using the instrument internal process with the barometric pressure assigned during the monthly calibration

@@ -1,0 +1,6 @@
+attributeName	code	definition
+level_m_flag	1	Observation is potentially anomalous
+level_m_flag	2	Observation is potentially anomalous due to silt accumulation in well
+level_m_flag	3	Observation is potentially anomalous due to the level sensor being returned to the wrong depth during service or due to another disturbance
+level_temp_flag	1	Observation is potentially anomalous
+level_temp_flag	2	Observation is potentially anomalous due to silt accumulation in well

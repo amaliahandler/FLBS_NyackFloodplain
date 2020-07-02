@@ -1,0 +1,8 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+site	Site within the floodplain for the well	character				
+sensor_number	Refers to the specific sensor	character				
+datetime	Datetime of the observation	Date		YYYY-MM-DD hh:mm		
+level_m	Water level relative to the ground surface elevation	numeric	meter		-999	Bad data removed due to independent verification
+level_temp	Water temperature as measured by the water level sensor	numeric	celsius		-999	Bad data removed due to independent verification
+level_m_flag	Code indicating water level data is questionable	categorical			NA	No flag
+level_temp_flag	Code indicating temperature data is questionable	categorical			NA	No flag

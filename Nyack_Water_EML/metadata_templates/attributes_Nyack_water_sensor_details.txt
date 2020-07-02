@@ -1,0 +1,12 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+site	Site within the floodplain for the well	character				
+sensor_number	Refers to the specific sensor	character				
+type	Identifies the sensor as a groundwater well or a surface water sensor by the name of the surface water feature	categorical				
+latitude	Latitude of the sensor location	numeric	meter		NA	Missing value
+longitude	Longitude of the sensor location	numeric	meter		NA	Missing value
+elevation	Ground elevation of the sensor location	numeric	meter			
+wellend_to_sensor	Distance between wellend and water level sensor Distance is from wellhead to sensor for grounwater wells and wellbottom to sensor for all other wells	numeric	meter		NA	Missing value
+wellend_to_ground	Distance between wellend and ground surface Distance is from wellhead to ground surface for grounwater wells and wellbottom to ground surface for all other wells	numeric	meter			
+total_well_depth	Total groundwater well depth	numeric	meter		NA	Surface water wells are suspended above the ground and do not have a total depth
+open_area_length	Distance from base of groundwater wells over which the well is slotted	numeric	meter		NA	Surface water wells are have a stilling well for measurements
+slot_screen_size	Mesh opening size for the groundwater well liners	numeric	millimeter		NA	Surface water wells do not contain mesh

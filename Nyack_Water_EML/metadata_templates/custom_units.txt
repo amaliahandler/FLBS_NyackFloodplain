@@ -1,0 +1,3 @@
+id	unitType	parentSI	multiplierToSI	description
+percent	massPerMass	gramsPerGram	1	grams per gram
+milliSiemens	conductance	siemen	0.001	milliSiemens

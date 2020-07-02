@@ -1,0 +1,11 @@
+site,sensor_number,type,latitude,longitude,elevation,wellend_to_sensor,wellend_to_ground,total_well_depth,open_area_length,slot_screen_size
+HA10,4,groundwater,48.47674594,-113.8363909,1008.9,4.25,1,12.16,10.64,2.04
+HA07,3,groundwater,48.46992439,-113.8346167,1009.9,5.06,1,9.07,6.08,2.04
+HA12,5,groundwater,48.45345903,-113.8067139,1021.4,4.75,1,13.58,12.16,2.04
+HA15,7,groundwater,48.46260653,-113.8197193,1011.4,5,1,9.35,7.6,2.04
+HA02,9,groundwater,48.4480334,-113.8096606,1019,4.42,1,9.1,6.61,2.04
+HA08,1,groundwater,48.46992439,-113.8346167,1009.9,5,1,8.44,6.08,2.04
+HA15,8,wally_spring,48.46260653,-113.8197193,1011.4,0.08,1,NA,NA,NA
+HA08,2,beaver_creek,48.46992439,-113.8346167,1009.9,0.5,1,NA,NA,NA
+CASC,6,middle_fork_flathead_river,48.425461,-113.775906,1027.2,4.25,1,NA,NA,NA
+HA02,10,parafluvial_zone,48.4480334,-113.8096606,1019,NA,1,NA,NA,NA

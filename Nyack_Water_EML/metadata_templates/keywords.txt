@@ -1,0 +1,8 @@
+keyword	keywordThesaurus
+Flathead Lake Biological Station	
+water chemistry	https://vocab.lternet.edu/vocab/vocab/index.php
+dissolved oxygen	https://vocab.lternet.edu/vocab/vocab/index.php
+specific conductivity	https://vocab.lternet.edu/vocab/vocab/index.php
+water level	https://vocab.lternet.edu/vocab/vocab/index.php
+water temperature	https://vocab.lternet.edu/vocab/vocab/index.php
+floodplain	https://vocab.lternet.edu/vocab/vocab/index.php

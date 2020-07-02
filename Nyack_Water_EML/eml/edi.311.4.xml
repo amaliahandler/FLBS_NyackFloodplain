@@ -1,0 +1,1056 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.311.4" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
+  <access authSystem="https://pasta.edirepository.org/authentication" order="allowFirst" scope="document">
+    <allow>
+      <principal>uid=amaliahandler,o=EDI,dc=edirepository,dc=org</principal>
+      <permission>all</permission>
+    </allow>
+    <allow>
+      <principal>public</principal>
+      <permission>read</permission>
+    </allow>
+  </access>
+  <dataset>
+    <title>Nyack Floodplain RiverNet surface water and groundwater dissolved oxygen, conductivity, water level, and temperature Northwest Montana, USA, 2012-2019</title>
+    <creator>
+      <individualName>
+        <givenName>Phil</givenName>
+        <givenName>L</givenName>
+        <surName>Matson</surName>
+      </individualName>
+      <organizationName>FLBS</organizationName>
+      <electronicMailAddress>phil.matson@flbs.umt.edu</electronicMailAddress>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Tom</givenName>
+        <givenName>S</givenName>
+        <surName>Bansak</surName>
+      </individualName>
+      <organizationName>FLBS</organizationName>
+      <electronicMailAddress>tom.bansak@flbs.umt.edu</electronicMailAddress>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Amalia</givenName>
+        <givenName>M</givenName>
+        <surName>Handler</surName>
+      </individualName>
+      <electronicMailAddress>amalia.handler@gmail.com</electronicMailAddress>
+    </creator>
+    <pubDate>2020-06-01</pubDate>
+    <abstract>
+      <para>Water dissolved oxygen, conductivity, temperature, and level from ten locations in the Nyack Floodplain of the Middle Fork of the Flathead River in Northwest Montana, USA. Measurements are made hourly for the period of 2012 to 2019. Six sensor are placed in groundwater wells and four are placed in surface water. Data have been cleaned to remove bad data and flag potentially anomalous observations.</para>
+    </abstract>
+    <keywordSet>
+      <keyword>Flathead Lake Biological Station</keyword>
+    </keywordSet>
+    <keywordSet>
+      <keyword>water chemistry</keyword>
+      <keyword>dissolved oxygen</keyword>
+      <keyword>specific conductivity</keyword>
+      <keyword>water level</keyword>
+      <keyword>water temperature</keyword>
+      <keyword>floodplain</keyword>
+      <keywordThesaurus>https://vocab.lternet.edu/vocab/vocab/index.php</keywordThesaurus>
+    </keywordSet>
+    <additionalInfo>
+      <para>Attached to this data package are the raw (no QAQC) data table, the R Markdown script used to QAQC the data, and the compiled sensor maintainence notes. </para>
+    </additionalInfo>
+    <intellectualRights>
+      <para>This data package is released to the \"public domain\" under Creative Commons CC0 1.0 \"No Rights Reserved\" (see: https://creativecommons.org/publicdomain/zero/1.0/). It is considered professional etiquette to provide attribution of the original work if this data package is shared in whole or by individual components. A generic citation is provided for this data package on the website https://portal.edirepository.org (herein \"website\") in the summary metadata page. Communication (and collaboration) with the creators of this data package is recommended to prevent duplicate research or publication. This data package (and its components) is made available \"as is\" and with no warranty of accuracy or fitness for use. The creators of this data package and the website shall not be liable for any damages resulting from misinterpretation or misuse of the data package or its components. Periodic updates of this data package may be available from the website. Thank you.</para>
+    </intellectualRights>
+    <coverage>
+      <geographicCoverage>
+        <geographicDescription>Nyack, Montana, USA</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>113.808</westBoundingCoordinate>
+          <eastBoundingCoordinate>113.850</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.487</northBoundingCoordinate>
+          <southBoundingCoordinate>48.444</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <temporalCoverage>
+        <rangeOfDates>
+          <beginDate>
+            <calendarDate>2011-12-14</calendarDate>
+          </beginDate>
+          <endDate>
+            <calendarDate>2019-06-25</calendarDate>
+          </endDate>
+        </rangeOfDates>
+      </temporalCoverage>
+    </coverage>
+    <maintenance>
+      <description>ongoing</description>
+    </maintenance>
+    <contact>
+      <individualName>
+        <givenName>Phil</givenName>
+        <givenName>L</givenName>
+        <surName>Matson</surName>
+      </individualName>
+      <organizationName>FLBS</organizationName>
+      <electronicMailAddress>phil.matson@flbs.umt.edu</electronicMailAddress>
+    </contact>
+    <contact>
+      <individualName>
+        <givenName>Amalia</givenName>
+        <givenName>M</givenName>
+        <surName>Handler</surName>
+      </individualName>
+      <electronicMailAddress>amalia.handler@gmail.com</electronicMailAddress>
+    </contact>
+    <methods>
+      <methodStep>
+        <description>
+          <para>The site is a 9 km2 montane floodplain on the gravel- and cobble-bedded Middle Fork of the Flathead River, located in northwest Montana, USA. Water dissolved oxygen, conductivity, temperature, and level from ten locations along the flooplain. Measurements are collected hourly for the period of 2011 to 2019. Six sensors are placed in groundwater wells and four are placed in surface water. All wells consist of a 7.64 cm diameter schedule 40 PVC. Groundwater wells have a maximum depth ranging from 8.5 to 13.5 m below ground. Surface water wells are are outfitted with a stilling well. Sensor arrays consist of an In Situ RDO to measure dissolved oxygen (DO) and temperature, a Campbell Scientific CS547 sensor outfitted with a A547 interface to measure conductivity and temperature, and a Campbell Scientific CS450-L pressure transducer to measure water level and temperature. Each sensor array is connected to a CR1000 logger and wiring panel for data logging. A solar panel recharges a 7 Ahr battery with a 12 V regulator. This data is periodically sent via radio telemetry to a central receiving location at a research cabin from which data backhaul to Flathead Lake Biological Station automatically twice daily via a landline telephone. Sensors are serviced monthly. The conducitivity and dissolved oxygen sensor surfaces are cleaned to remove any fouling. The water level sensor is cleaned on an as-needed basis. The dissolved oxygen sensor was calibrated monthly using a single point calibration (100% water saturated air) with barometric pressure from a meterological station on the floodplain. </para>
+          <para>The water level, conductivity, DO concentration, and temperature sensor associated with each sensor have been cleaned to remove known erroneous data based on field notes and flag potentially anomalous observations. Examples of known erroneous data include when all sensors are removed from the well for service or when solution is added to the well to remove ice in order to service sensors. These examples have independent verification from the sensor service log. In these cases, data values were replaced with a missing data value (-999). All other anomalous data was identified using the R package Anomalize (Version 0.1.1) using the seasonal decomposition of time series by loess (stl) method with frequency set to 24 hours and a trend of two weeks. The threshold for anomaly identification was tuned to each variable and sensor due to different variation structure. Anomalies identified through this process are noted in a flag column. Note that some of the groundwater wells do occasionally flood from surface water. Wells located at HA02, HA10, and HA15 are especially prone to this phenomena in the spring. The DO percent saturation has not been been cleaned for quality control. The DO percent saturation is calculated based on cleaned dissolved oxygen concentration and temperature data, as well as the non-QAQC barometric pressure data from the local meteorological station. When barometric pressure was missing from the meterological station, the instrument-calculated DO saturation was used. The raw data table contains the insturment-calculated DO saturation only.</para>
+          <para>Funding for the this monitoring program came in part from a NSF Field Stations and Marine Labs (FSML) program award: Enhanced Cooperative Research and Education at Flathead Lake Biological Station and Taylor Wilderness Research Station (DBI-0934420; 2009-2012).</para>
+        </description>
+      </methodStep>
+      <methodStep>
+        <description>
+          <para>This method step describes provenance-based metadata as specified in the LTER EML Best Practices.</para>
+          <para>This provenance metadata does not contain entity specific information.</para>
+        </description>
+        <dataSource>
+          <title>Nyack Floodplain RiverNet meteorlogical and soil data in Northwest Montana, USA, 2012-2019</title>
+          <creator>
+            <individualName>
+              <givenName>Phil</givenName>
+              <givenName>L</givenName>
+              <surName>Matson</surName>
+            </individualName>
+            <organizationName>FLBS</organizationName>
+            <electronicMailAddress>phil.matson@flbs.umt.edu</electronicMailAddress>
+          </creator>
+          <creator>
+            <individualName>
+              <givenName>Tom</givenName>
+              <givenName>S</givenName>
+              <surName>Bansak</surName>
+            </individualName>
+            <organizationName>FLBS</organizationName>
+            <electronicMailAddress>tom.bansak@flbs.umt.edu</electronicMailAddress>
+          </creator>
+          <creator>
+            <individualName>
+              <givenName>Amalia</givenName>
+              <givenName>M</givenName>
+              <surName>Handler</surName>
+            </individualName>
+            <electronicMailAddress>amalia.handler@gmail.com</electronicMailAddress>
+          </creator>
+          <distribution>
+            <online>
+              <onlineDescription>This online link references an EML document that describes data used in the creation of this derivative data package.</onlineDescription>
+              <url function="information">https://pasta.lternet.edu/package/metadata/eml/edi/416/2</url>
+            </online>
+          </distribution>
+          <contact>
+            <individualName>
+              <givenName>Phil</givenName>
+              <givenName>L</givenName>
+              <surName>Matson</surName>
+            </individualName>
+            <organizationName>FLBS</organizationName>
+            <electronicMailAddress>phil.matson@flbs.umt.edu</electronicMailAddress>
+          </contact>
+          <contact>
+            <individualName>
+              <givenName>Amalia</givenName>
+              <givenName>M</givenName>
+              <surName>Handler</surName>
+            </individualName>
+            <electronicMailAddress>amalia.handler@gmail.com</electronicMailAddress>
+          </contact>
+        </dataSource>
+      </methodStep>
+    </methods>
+    <project>
+      <title>No project title to report</title>
+      <personnel>
+        <individualName>
+          <givenName>Bob</givenName>
+          <givenName>O</givenName>
+          <surName>Hall</surName>
+        </individualName>
+        <organizationName>FLBS</organizationName>
+        <electronicMailAddress>bob.hall@flbs.umt.edu</electronicMailAddress>
+        <role>Principal Investigator</role>
+      </personnel>
+      <funding>No funding to report</funding>
+    </project>
+    <dataTable>
+      <entityName>Nyack_do_cleaned.csv</entityName>
+      <entityDescription>Dissolved oxygen data data</entityDescription>
+      <physical>
+        <objectName>Nyack_do_cleaned.csv</objectName>
+        <size unit="bytes">29438463</size>
+        <authentication method="MD5">020dd44f8d47e860466cb68cf1d964c5</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>site</attributeName>
+          <attributeDefinition>Site within the floodplain for the well</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Site within the floodplain for the well</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>sensor_number</attributeName>
+          <attributeDefinition>Refers to the specific sensor</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Refers to the specific sensor</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>datetime</attributeName>
+          <attributeDefinition>Datetime of the observation</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD hh:mm</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>do_conc</attributeName>
+          <attributeDefinition>Dissolved oxygen concentration</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>milligramsPerLiter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-0.149</minimum>
+                  <maximum exclusive="false">20.11</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>do_sat</attributeName>
+          <attributeDefinition>Dissolved oxygen percent saturation</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>percent</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.168</minimum>
+                  <maximum exclusive="false">180.8182046</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>do_temp</attributeName>
+          <attributeDefinition>Water temperature as measured by the dissolved oxygen sensor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-3.024</minimum>
+                  <maximum exclusive="false">42.71</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>do_conc_flag</attributeName>
+          <attributeDefinition>Code indicating dissolved oxygen concentration data is questionable</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>1</code>
+                    <definition>Observation is potentially anomalous</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>2</code>
+                    <definition>Observation is potentially anomalous due to silt accumulation in well</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>No flag</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>do_temp_flag</attributeName>
+          <attributeDefinition>Code indicating temperature data is questionable</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>1</code>
+                    <definition>Observation is potentially anomalous</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>2</code>
+                    <definition>Observation is potentially anomalous due to silt accumulation in well</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>No flag</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>do_sat_flag</attributeName>
+          <attributeDefinition>Code indicating temperature data is questionable</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>1</code>
+                    <definition>Observation is potentially anomalous</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>2</code>
+                    <definition>Observation is potentially anomalous due to silt accumulation in well</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>4</code>
+                    <definition>Observation was manually calculated using local barometric pressure data</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>5</code>
+                    <definition>Observation was calculated using the instrument internal process with the barometric pressure assigned during the monthly calibration</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>No flag</codeExplanation>
+          </missingValueCode>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>526734</numberOfRecords>
+    </dataTable>
+    <dataTable>
+      <entityName>Nyack_cond_cleaned.csv</entityName>
+      <entityDescription>Conductivity data</entityDescription>
+      <physical>
+        <objectName>Nyack_cond_cleaned.csv</objectName>
+        <size unit="bytes">27665706</size>
+        <authentication method="MD5">1397c12054043b42020a35f826100f0c</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>site</attributeName>
+          <attributeDefinition>Site within the floodplain for the well</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Site within the floodplain for the well</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>sensor_number</attributeName>
+          <attributeDefinition>Refers to the specific sensor</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Refers to the specific sensor</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>datetime</attributeName>
+          <attributeDefinition>Datetime of the observation</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD hh:mm</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>cond</attributeName>
+          <attributeDefinition>Water specific conductivity, temperature corrected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>milliSiemens</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.005</minimum>
+                  <maximum exclusive="false">18.4</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>cond_temp</attributeName>
+          <attributeDefinition>Water temperature as measured by the conductivity sensor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-0.702</minimum>
+                  <maximum exclusive="false">31.42</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ct</attributeName>
+          <attributeDefinition>Water specific conductivity, NOT for temperature</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>milliSiemens</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.369125</minimum>
+                  <maximum exclusive="false">11.01395</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>cond_flag</attributeName>
+          <attributeDefinition>Code indicating conductivity data is questionable</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>1</code>
+                    <definition>Observation is potentially anomalous</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>2</code>
+                    <definition>Observation is potentially anomalous due to silt accumulation in well</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>No flag</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>cond_temp_flag</attributeName>
+          <attributeDefinition>Code indicating temperature data is questionable</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>1</code>
+                    <definition>Observation is potentially anomalous</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>2</code>
+                    <definition>Observation is potentially anomalous due to silt accumulation in well</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>No flag</codeExplanation>
+          </missingValueCode>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>526734</numberOfRecords>
+    </dataTable>
+    <dataTable>
+      <entityName>Nyack_level_cleaned.csv</entityName>
+      <entityDescription>Water level data</entityDescription>
+      <physical>
+        <objectName>Nyack_level_cleaned.csv</objectName>
+        <size unit="bytes">22468648</size>
+        <authentication method="MD5">26161512d0ef9270decee57d0ba29ac7</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>site</attributeName>
+          <attributeDefinition>Site within the floodplain for the well</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Site within the floodplain for the well</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>sensor_number</attributeName>
+          <attributeDefinition>Refers to the specific sensor</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Refers to the specific sensor</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>datetime</attributeName>
+          <attributeDefinition>Datetime of the observation</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD hh:mm</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>level_m</attributeName>
+          <attributeDefinition>Water level relative to the ground surface elevation</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-0.044</minimum>
+                  <maximum exclusive="false">5.165</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>level_temp</attributeName>
+          <attributeDefinition>Water temperature as measured by the water level sensor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-6.191</minimum>
+                  <maximum exclusive="false">32.07</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>-999</code>
+            <codeExplanation>Bad data removed due to independent verification</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>level_m_flag</attributeName>
+          <attributeDefinition>Code indicating water level data is questionable</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>1</code>
+                    <definition>Observation is potentially anomalous</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>2</code>
+                    <definition>Observation is potentially anomalous due to silt accumulation in well</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>3</code>
+                    <definition>Observation is potentially anomalous due to the level sensor being returned to the wrong depth during service or due to another disturbance</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>No flag</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>level_temp_flag</attributeName>
+          <attributeDefinition>Code indicating temperature data is questionable</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>1</code>
+                    <definition>Observation is potentially anomalous</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>2</code>
+                    <definition>Observation is potentially anomalous due to silt accumulation in well</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>No flag</codeExplanation>
+          </missingValueCode>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>526734</numberOfRecords>
+    </dataTable>
+    <dataTable>
+      <entityName>Nyack_water_sensor_details.csv</entityName>
+      <entityDescription>Sensor details</entityDescription>
+      <physical>
+        <objectName>Nyack_water_sensor_details.csv</objectName>
+        <size unit="bytes">864</size>
+        <authentication method="MD5">eafb38f5ca15a0019542327e369bdf0d</authentication>
+        <dataFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
+        </dataFormat>
+      </physical>
+      <attributeList>
+        <attribute>
+          <attributeName>site</attributeName>
+          <attributeDefinition>Site within the floodplain for the well</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Site within the floodplain for the well</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>sensor_number</attributeName>
+          <attributeDefinition>Refers to the specific sensor</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Refers to the specific sensor</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>type</attributeName>
+          <attributeDefinition>Identifies the sensor as a groundwater well or a surface water sensor by the name of the surface water feature</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <enumeratedDomain>
+                  <codeDefinition>
+                    <code>groundwater</code>
+                    <definition>groundwater well</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>wally_spring</code>
+                    <definition>Sensor in Wally spring that drains to Beaver Creek</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>beaver_creek</code>
+                    <definition>Sensor in Beaver Creek that drains to the Middle Fork of the Flathead River</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>middle_fork_flathead_river</code>
+                    <definition>Sensor in the Middle Fork of the Flathead River</definition>
+                  </codeDefinition>
+                  <codeDefinition>
+                    <code>parafluvial_zone</code>
+                    <definition>Sensor in parafluvial zone that drains to the Middle Fork of the Flathead River</definition>
+                  </codeDefinition>
+                </enumeratedDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>latitude</attributeName>
+          <attributeDefinition>Latitude of the sensor location</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">48.425461</minimum>
+                  <maximum exclusive="false">48.47674594</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Missing value</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>longitude</attributeName>
+          <attributeDefinition>Longitude of the sensor location</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-113.8363909</minimum>
+                  <maximum exclusive="false">-113.775906</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Missing value</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>elevation</attributeName>
+          <attributeDefinition>Ground elevation of the sensor location</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">1008.9</minimum>
+                  <maximum exclusive="false">1027.2</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>wellend_to_sensor</attributeName>
+          <attributeDefinition>Distance between wellend and water level sensor Distance is from wellhead to sensor for grounwater wells and wellbottom to sensor for all other wells</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.08</minimum>
+                  <maximum exclusive="false">5.06</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Missing value</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>wellend_to_ground</attributeName>
+          <attributeDefinition>Distance between wellend and ground surface Distance is from wellhead to ground surface for grounwater wells and wellbottom to ground surface for all other wells</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>natural</numberType>
+                <bounds>
+                  <minimum exclusive="false">1</minimum>
+                  <maximum exclusive="false">1</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>total_well_depth</attributeName>
+          <attributeDefinition>Total groundwater well depth</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">8.44</minimum>
+                  <maximum exclusive="false">13.58</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Surface water wells are suspended above the ground and do not have a total depth</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>open_area_length</attributeName>
+          <attributeDefinition>Distance from base of groundwater wells over which the well is slotted</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">6.08</minimum>
+                  <maximum exclusive="false">12.16</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Surface water wells are have a stilling well for measurements</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>slot_screen_size</attributeName>
+          <attributeDefinition>Mesh opening size for the groundwater well liners</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>millimeter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">2.04</minimum>
+                  <maximum exclusive="false">2.04</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Surface water wells do not contain mesh</codeExplanation>
+          </missingValueCode>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>10</numberOfRecords>
+    </dataTable>
+    <otherEntity>
+      <entityName>HA_AllWater_Raw.csv</entityName>
+      <entityDescription>Raw water data</entityDescription>
+      <physical>
+        <objectName>HA_AllWater_Raw.csv</objectName>
+        <size unit="bytes">43922652</size>
+        <authentication method="MD5">0f898442e9e71ad6cab48c41895100ba</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>unknown</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+    <otherEntity>
+      <entityName>Nyack_Floodplain_Water_QAQC.Rmd</entityName>
+      <entityDescription>Water data QAQC script</entityDescription>
+      <physical>
+        <objectName>Nyack_Floodplain_Water_QAQC.Rmd</objectName>
+        <size unit="bytes">63392</size>
+        <authentication method="MD5">af053ddd00566d65ad4079b6e0d0cf03</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>unknown</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+    <otherEntity>
+      <entityName>HA_Field_Log.xlsx</entityName>
+      <entityDescription>Sensor service field notes</entityDescription>
+      <physical>
+        <objectName>HA_Field_Log.xlsx</objectName>
+        <size unit="bytes">125066</size>
+        <authentication method="MD5">581c53f7fe9112d83e5b8596ef28b0fb</authentication>
+        <dataFormat>
+          <externallyDefinedFormat>
+            <formatName>unknown</formatName>
+          </externallyDefinedFormat>
+        </dataFormat>
+      </physical>
+      <entityType>unknown</entityType>
+    </otherEntity>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <unitList>
+        <unit id="percent" multiplierToSI="1" name="percent" parentSI="gramsPerGram" unitType="massPerMass">
+          <description>grams per gram</description>
+        </unit>
+        <unit id="milliSiemens" multiplierToSI="0.001" name="milliSiemens" parentSI="siemen" unitType="conductance">
+          <description>milliSiemens</description>
+        </unit>
+      </unitList>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

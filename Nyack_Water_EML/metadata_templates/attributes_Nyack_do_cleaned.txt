@@ -1,0 +1,10 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+site	Site within the floodplain for the well	character				
+sensor_number	Refers to the specific sensor	character				
+datetime	Datetime of the observation	Date		YYYY-MM-DD hh:mm		
+do_conc	Dissolved oxygen concentration	numeric	milligramsPerLiter		-999	Bad data removed due to independent verification
+do_sat	Dissolved oxygen percent saturation	numeric	percent		-999	Bad data removed due to independent verification
+do_temp	Water temperature as measured by the dissolved oxygen sensor	numeric	celsius		-999	Bad data removed due to independent verification
+do_conc_flag	Code indicating dissolved oxygen concentration data is questionable	categorical			NA	No flag
+do_temp_flag	Code indicating temperature data is questionable	categorical			NA	No flag
+do_sat_flag	Code indicating temperature data is questionable	categorical			NA	No flag

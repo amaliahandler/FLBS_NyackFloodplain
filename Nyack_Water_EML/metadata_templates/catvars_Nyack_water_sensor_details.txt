@@ -1,0 +1,6 @@
+attributeName	code	definition
+type	groundwater	groundwater well
+type	wally_spring	Sensor in Wally spring that drains to Beaver Creek
+type	beaver_creek	Sensor in Beaver Creek that drains to the Middle Fork of the Flathead River
+type	middle_fork_flathead_river	Sensor in the Middle Fork of the Flathead River
+type	parafluvial_zone	Sensor in parafluvial zone that drains to the Middle Fork of the Flathead River

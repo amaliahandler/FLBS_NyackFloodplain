@@ -1,0 +1,21 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+site	Site code location within the Nyack Floodplain	character				
+datetime	Date and time of observation	Date		YYYY-MM-DD hh:mm		
+AirTC	Air temperature	numeric	celsius			
+RH	Relative humidity	numeric	percent			
+BP_mmHg	Barometric pressure	numeric	millimetersMercury			
+PAR_Den	Photosynthetically active radiation flux density	numeric	microMolesPerSecondPerSquareMeter			
+SlrkW	Flux density	numeric	kiloWattsPerSquareMeter			
+Soil_T_C	Soil temperature	numeric	celsius			
+VW	Volumetric soil water content	numeric	millilitersPerMilliliter			
+PA_uS	The time period over which the volumetric water content is averaged	numeric	microsecond			
+WindSpeed	Wind speed	numeric	metersPerSecond			
+WindDir	Wind direction	numeric	degree			
+WindSpeed_S_WVT	Wind vector data mean wind speed	numeric	metersPerSecond			
+WindDir_D1_WVT	Wind vector data unit vector mean wind direction	numeric	degree			
+WindDir_SD1_WVT	Wind vector data standard deviation mean wind direction	numeric	metersPerSecond			
+Rain_mm_Tot	Total precipitation	numeric	millimeter			
+AirTC_Max	Maximum air temperature over observation interval	numeric	celsius			
+AirTC_TMx	Date and time of maximum air temperature over observation interval	Date		YYYY-MM-DD hh:mm		
+AirTC_Min	Minimum air temperature over observation interval	numeric	celsius			
+AirTC_TMn	Date and time of minimum air temperature over observation interval	Date		YYYY-MM-DD hh:mm		

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<methodStep>
+  <description>
+    <para>This method step describes provenance-based metadata as specified in the LTER EML Best Practices.</para>
+    <para>This provenance metadata does not contain entity specific information.</para>
+  </description>
+  <dataSource>
+    <title>Nyack Floodplain RiverNet meteorlogical and soil data in Northwest Montana, USA, 2012-2019</title>
+    <creator>
+      <individualName>
+        <givenName>Phil</givenName>
+        <givenName>L</givenName>
+        <surName>Matson</surName>
+      </individualName>
+      <organizationName>FLBS</organizationName>
+      <electronicMailAddress>phil.matson@flbs.umt.edu</electronicMailAddress>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Tom</givenName>
+        <givenName>S</givenName>
+        <surName>Bansak</surName>
+      </individualName>
+      <organizationName>FLBS</organizationName>
+      <electronicMailAddress>tom.bansak@flbs.umt.edu</electronicMailAddress>
+    </creator>
+    <creator>
+      <individualName>
+        <givenName>Amalia</givenName>
+        <givenName>M</givenName>
+        <surName>Handler</surName>
+      </individualName>
+      <electronicMailAddress>amalia.handler@gmail.com</electronicMailAddress>
+    </creator>
+    <distribution>
+      <online>
+        <onlineDescription>This online link references an EML document that describes data used in the creation of this derivative data package.</onlineDescription>
+        <url function="information">https://pasta.lternet.edu/package/metadata/eml/edi/416/2</url>
+      </online>
+    </distribution>
+    <contact>
+      <individualName>
+        <givenName>Phil</givenName>
+        <givenName>L</givenName>
+        <surName>Matson</surName>
+      </individualName>
+      <organizationName>FLBS</organizationName>
+      <electronicMailAddress>phil.matson@flbs.umt.edu</electronicMailAddress>
+    </contact>
+    <contact>
+      <individualName>
+        <givenName>Amalia</givenName>
+        <givenName>M</givenName>
+        <surName>Handler</surName>
+      </individualName>
+      <electronicMailAddress>amalia.handler@gmail.com</electronicMailAddress>
+    </contact>
+  </dataSource>
+</methodStep>

@@ -1,0 +1,1 @@
+﻿Attached to this data package are the raw (no QAQC) data table, the R Markdown script used to QAQC the data, and the compiled sensor maintainence notes. 
