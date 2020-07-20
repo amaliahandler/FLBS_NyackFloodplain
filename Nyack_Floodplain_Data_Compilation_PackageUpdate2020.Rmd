@@ -1,0 +1,168 @@
+---
+title: "Nyack Floodplain Data Archiving"
+author: "Amalia Handler"
+date: "7/01/2019"
+output: 
+  html_document: 
+    keep_md: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+Code to compile all River Net Nyack Floodplain meterological and hydrologic data. Code was written by Amalia Handler, Environmental Data Initiative Summer Data Science Fellow, during summer 2019. Please contact her with any questions: amalia.handler@gmail.com. Code was updated by volunteer intern Samuel Bosio to upload the 2020 data during summer 2020.
+
+Load data from FLBS internal database. It extends from 2013-04-01 to 2019-06-25 in the case of sensor HA_02 and to 2020-07-01 for the others. 
+
+```{r include = FALSE}
+# List the files in the directory from Phil
+ha_files_toread <- list.files(path = "/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020", pattern = ".dat")
+
+# Read in the files
+toread <- paste("/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/", ha_files_toread, sep = '')
+
+ha_files <- list()
+ha_files <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
+
+# Get the column names
+var_names <- list()
+for(i in 1:length(ha_files)){
+  var_names[[i]] <- colnames(read.delim(paste("/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/", ha_files_toread[i], sep = ''), sep = ",", skip = 1, header = TRUE))
+}
+
+# Apply the column names to the list of dfs
+for(i in 1:length(var_names)){
+  colnames(ha_files[[i]]) <- var_names[[i]]
+}
+
+# Convert the timestamp to a datetime variable
+ha_files <- lapply(ha_files, function(x){
+ x$TIMESTAMP <- as.POSIXct(x$TIMESTAMP, format = "%Y-%m-%d %H:%M:%S")
+ return(x)
+})
+
+# Determine if each file is a water or meteorlogical file
+file_info <- sapply(ha_files, function(x){
+  if(colnames(x)[3] == "AirTC") {
+    data_type <- "met"
+  } else { data_type <- "water"}
+  return(data_type)
+})
+
+# Find the ha number for each file
+# If the file contains "CR1000", then I can extract
+# If the file name contains "Nyack" then need another method
+well_info <- NULL
+for(i in 1:length(ha_files_toread)){
+  if(grepl("CR1000", ha_files_toread[i])){
+  well_info[i] <- substr(ha_files_toread[i], 8, 11)
+  } else {well_info[i] <- substr(ha_files_toread[i], 7, 10)}
+}
+
+# Name the dataframes in the list
+ha_df_names <- paste(well_info, file_info, sep = '_')
+
+names(ha_files)  <- ha_df_names
+names(var_names) <- ha_df_names
+
+# Need to coerce the mutiple columns in the HA02 df from character to number. Seems that R does not see "NAN" is equivelent to "NaN".
+column_numbers <- c(11, 14:17)
+for(col in column_numbers){
+  ha_files$HA02_water[,col] <- 
+    as.numeric(ha_files$HA02_water[,col])
+}
+
+# Remove rows with no datetime information (artifact of changing over to daylight savings time)
+ha_files <- lapply(ha_files, function(df){
+  df[!is.na(df$TIMESTAMP),]
+})
+
+
+```
+
+
+Isolate the met station data, this is part of it's own data package
+
+```{r}
+# Rename "timestamp" to "datetime" column and remove the records column in the met data
+colnames(ha_files$HA07_met)[1]  <- "datetime"
+
+# Add a site column, then rearrange the columns, getting rid of the RECORD number column
+ha_files$HA07_met$site <- "ha07" 
+ha_files$HA07_met      <- ha_files$HA07_met[, c(21,1,3:20)]
+
+# Save the meterological data file
+saveRDS(ha_files$HA07_met, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/Nyack_Met_Data.rds')
+write.csv(ha_files$HA07_met, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/Nyack_Met_Data.csv', row.names = FALSE)
+
+```
+
+
+Compile all water data into one dataframe. This is part of another data package.
+
+
+```{r}
+# For HA02, 08, and 15, there are two sets of sensors. Need to separate these into different dataframes.
+#   HA02 has sensors 9 and 10
+#   HA08 has sensors 1 and 2
+#   HA15 has sensors 7 and 8
+ha02_09 <- ha_files$HA02_water[,colnames(ha_files$HA02_water)[1:10]]
+ha02_10 <- ha_files$HA02_water[,colnames(ha_files$HA02_water)[c(1,2,11:18)]]
+ha08_01 <- ha_files$HA08_water[,colnames(ha_files$HA08_water)[1:10]]
+ha08_02 <- ha_files$HA08_water[,colnames(ha_files$HA08_water)[c(1,2,11:18)]]
+ha15_07 <- ha_files$HA15_water[,colnames(ha_files$HA15_water)[1:10]]
+ha15_08 <- ha_files$HA15_water[,colnames(ha_files$HA15_water)[c(1,2,11:18)]]
+
+# Recombine all data into a list to ease processing
+ha_sep <- list(ha_files$CASC_water, ha_files$HA07_water,
+               ha08_01, ha08_02, ha_files$HA10_water, ha_files$HA12_water,
+               ha15_07, ha15_08)
+
+# Need to add site information to each df
+site <- c('CASC', 'HA07', 'HA08', 'HA08', 'HA10', 'HA12', 'HA15', 'HA15')
+
+# Also add sensor number to each df. This is just an elaborate way of identifying when the sensor number requires a leading zero (for sensors 1-9) or not (for sensor 10).
+sensor <- sapply(ha_sep, function(x){
+  col_name <- colnames(x)[10]
+  if(nchar(col_name) == 8){
+    num <- substr(col_name, 8, 8)
+    sensor_number <- paste('0', num, sep = '')
+  } else {
+    sensor_number <- substr(col_name, 8, 9)
+  }
+  return(sensor_number)
+})
+
+# Add columns to each df for the site and the sensor number
+ha_sep <- lapply(seq_along(ha_sep), function(i){
+  ha_sep[[i]]$site          <- site[i]
+  ha_sep[[i]]$sensor_number <- sensor[i]
+  return(ha_sep[[i]])
+})
+
+# Now bind together all the files to form one very long dataframe.
+
+# Need to rename columns for compatabiility
+col_names <- c('datetime', 'record', 'do_conc', 'do_sat', 'do_temp', 'cond', 'ct', 'cond_temp', 'level_m', 'level_temp', 'site', 'sensor_number')
+
+# Rename the columns for the dfs in the list
+ha_rename <- lapply(ha_sep, function(x){
+  colnames(x) <- col_names
+  return(x)
+})
+
+# Bind together all rows to create one giant df
+ha_all <- do.call("rbind", ha_rename)
+
+# Rearrange the columns
+ha_water <- ha_all[, c(11,12,1,3:10)]
+
+# Remove duplicated rows
+ha_water <- ha_water[!duplicated(ha_water),]
+
+# Save the new master file
+saveRDS(ha_water, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/HA_Water_Data_Compiled.rds')
+write.csv(ha_water, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/HA_Water_Data_Compiled.csv', row.names = FALSE, quote = FALSE)
+
+```
+
+Voila! All River Net data are compiled.  
