@@ -1,0 +1,128 @@
+---
+title: "Nyack_Floodplain_Water_EML_Assembly"
+author: "Amalia Handler"
+date: "7/9/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+This script uses the EML Assemblyline to create the metadata associated with the RiverNet water data.
+
+```{r}
+# Install EML assemblyline from GitHub
+remotes::install_github("EDIorg/EMLassemblyline")
+
+# Load packages
+library(EMLassemblyline)
+
+# Template a data package directory
+# Note that this script is part of an R project and defaults to the project directory
+template_directories(
+  path = '.',
+  dir.name = 'Nyack_Water_EML'
+)
+
+# View directory contents (folders to hold the EML objects)
+dir('./Nyack_Water_EML')
+
+# Confirm that the templates directory is empty
+dir('./Nyack_Water_EML/metadata_templates')
+
+# Create templates for core metadata
+template_core_metadata(
+  path = './Nyack_Water_EML/metadata_templates',
+  license = 'CC0'
+)
+
+# Confirm that the templates core metadata files are now present
+dir('./Nyack_Water_EML/metadata_templates')
+
+# Add the compiled water data to the directory
+file.copy(from = './Data/Nyack_do_cleaned.csv', 
+          to   = './Nyack_Water_EML/data_objects')
+
+file.copy(from = './Data/Nyack_cond_cleaned.csv', 
+          to   = './Nyack_Water_EML/data_objects')
+
+file.copy(from = './Data/Nyack_level_cleaned.csv', 
+          to   = './Nyack_Water_EML/data_objects')
+
+file.copy(from = './Data/Nyack_water_sensor_details.csv', 
+          to   = './Nyack_Water_EML/data_objects')
+
+# Confirm that the files are present in the EML directory
+dir('./Nyack_Water_EML/data_objects')
+
+# Template table attributes for each table
+template_table_attributes(
+  path = './Nyack_Water_EML/metadata_templates',
+  data.path = './Nyack_Water_EML/data_objects',
+  data.table = c('Nyack_do_cleaned.csv', 
+                 'Nyack_cond_cleaned.csv',
+                 'Nyack_level_cleaned.csv',
+                 'Nyack_water_sensor_details.csv')
+)
+
+# Table attributes templates are now present
+dir('./Nyack_Water_EML/metadata_templates')
+
+# At this point, manually edit the variable types in the attribute files.
+# Easiest way to do this is to open the attribute tables in Excel for editing. 
+# Check especially for categorical and datetime variables as sometimes these are attributed as numeric or factors. Correctly identifying the categorical varaibles is very important before proceeding to the next step.
+
+# These two lines open a searchable window in R Studio with the library of units
+standardUnits <- EML::get_unitList()
+View(standardUnits$units)
+
+# Template categorical variables
+template_categorical_variables(
+  path = './Nyack_Water_EML/metadata_templates',
+  data.path = './Nyack_Water_EML/data_objects'
+)
+
+# At this point, manually edit the categorical variables in the categorical template files. Easiest way to do this is to open the tables in Excel for editing. 
+
+# Template geographic coverage
+template_geographic_coverage(
+  path = './Nyack_Water_EML/metadata_templates',
+  data.path = './Nyack_Water_EML/data_objects',
+  data.table = 'Nyack_water_sensor_details.csv',
+  site.col = 'site',
+  lat.col = 'latitude',
+  lon.col = 'longitude'
+)
+
+# At this point, manually edit the abstract, additional info, custom units, keywords, methods, and personnel files in the metadat_templates. This is most easily done by composing text in a text editor and copying into the files in the metadata_templates folder. Only proceed to the net step once this is completed.
+
+# For keywords, see the LTER Controlled Vocabulary Library: https://vocab.lternet.edu/vocab/vocab/index.php
+
+
+# This step constructs the EML document
+# Remember than geographic coordinates must be negative longitude for the US
+make_eml(
+  path = './Nyack_Water_EML/metadata_templates',
+  data.path = './Nyack_Water_EML/data_objects',
+  eml.path = './Nyack_Water_EML/eml',
+  dataset.title = 'Nyack Floodplain RiverNet surface water and groundwater dissolved oxygen, conductivity, water level, and temperature Northwest Montana, USA, 2012-2019',
+  temporal.coverage = c('2011-12-14', '2019-06-25'),
+  geographic.description = 'Nyack, Montana, USA',
+  geographic.coordinates = c('48.487', '-113.850','48.444', '-113.808'),
+  maintenance.description = 'ongoing',
+  data.table = c('Nyack_do_cleaned.csv', 'Nyack_cond_cleaned.csv', 'Nyack_level_cleaned.csv', 'Nyack_water_sensor_details.csv'),
+  data.table.description = c('Dissolved oxygen data data', 'Conductivity data', 'Water level data', 'Sensor details'),
+  other.entity = c('HA_AllWater_Raw.csv', 'Nyack_Floodplain_Water_QAQC.Rmd', 'HA_Field_Log.xlsx'),
+  other.entity.description = c('Raw water data', 'Water data QAQC script', 'Sensor service field notes'),
+  provenance = 'edi.416.2',
+  user.id = 'amaliahandler',
+  user.domain = 'EDI',
+  package.id = 'edi.524.2'
+)
+
+# View directory
+
+dir('./Nyack_Water_EML/eml')
+
+
+```
+
