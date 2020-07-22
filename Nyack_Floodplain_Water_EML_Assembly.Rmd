@@ -7,7 +7,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-This script uses the EML Assemblyline to create the metadata associated with the RiverNet water data.
+This script uses the EML Assemblyline to create the metadata associated with the RiverNet water data. 
 
 ```{r}
 # Install EML assemblyline from GitHub
