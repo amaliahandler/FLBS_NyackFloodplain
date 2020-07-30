@@ -1,0 +1,12 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+site	Site within the floodplain for the well	character				
+sensor_number	refers to the number of the specific sensor	character				
+datetime	datetime of the observation	Date		YYYY-MM-DD hh:mm		
+do_conc	Dissolved oxygen concentration	numeric	milligramsPerLiter		NA	Sensor did not record data for this interval likely due to periodic inspection
+do_sat	Dissolved oxygen percent saturation	numeric	percent		NA	Sensor did not record data for this interval likely due to periodic inspection
+do_temp	Water temperature as measured by the dissolved oxygen sensor	numeric	celsius		NA	Sensor did not record data for this interval likely due to periodic inspection
+cond	"Water specific conductivity, temperature corrected"	numeric	milliSiemens		NA	Sensor did not record data for this interval likely due to periodic inspection
+ct	"Water specific conductivity, NOT for temperature"	numeric	milliSiemens		NA	Sensor did not record data for this interval likely due to periodic inspection
+cond_temp	Water temperature as measured by the conductivity sensor	numeric	celsius		NA	Sensor did not record data for this interval likely due to periodic inspection
+level_m	Water level relative to the ground surface elevation	numeric	meter		NA	Sensor did not record data for this interval likely due to periodic inspection
+level_temp	Water temperature as measured by the water level sensor	numeric	celsius		NA	Sensor did not record data for this interval likely due to periodic inspection

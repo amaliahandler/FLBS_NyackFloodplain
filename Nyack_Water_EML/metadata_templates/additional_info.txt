@@ -1,1 +1,1 @@
-﻿Attached to this data package are the raw (no QAQC) data table, the R Markdown script used to QAQC the data, and the compiled sensor maintainence notes. 
+﻿Attached to this data package are the raw (no QAQC) data table for data up to July 2nd 2020, the R Markdown script used to QAQC the data up to June 26th 2019, and the compiled sensor maintainence notes. 

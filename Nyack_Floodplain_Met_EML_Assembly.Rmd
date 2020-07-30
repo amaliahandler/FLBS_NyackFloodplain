@@ -9,8 +9,12 @@ editor_options:
 This script uses the EML Assemblyline to create the metadata associated with the RiverNet meterological data.
 
 ```{r}
+# Load remotes package
+install.packages("remotes")
+library("remotes")
 # Install EML assemblyline from GitHub
-# remotes::install_github("EDIorg/EMLassemblyline")
+
+remotes::install_github("EDIorg/EMLassemblyline")
 
 # Load packages
 library(EMLassemblyline)
