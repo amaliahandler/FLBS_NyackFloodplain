@@ -1,13 +1,13 @@
 ---
-  title: "Nyack_Floodplain_Water_EML_Assembly"
+title: "Nyack_Floodplain_Water_EML_Assembly"
 author: "Amalia Handler"
-date: "7/9/2019"
+date: "7/31/2020"
 output: html_document
 editor_options: 
   chunk_output_type: console
 ---
-library(xml2)
-#  This script uses the EML Assemblyline to create the metadata associated with the RiverNet water data. 
+
+This script uses the EML Assemblyline to create the metadata associated with the RiverNet water data. 
 
 ```{r}
 # Install EML assemblyline from GitHub
@@ -17,7 +17,7 @@ library(EMLassemblyline)
 # Template a data package directory
 # Note that this script is part of an R project and defaults to the project directory
 template_directories(
-  path = '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Nyack_Water_EML/metadata_templates',
+  path = '.',
   dir.name = 'Nyack_Water_EML'
 )
 # View directory contents (folders to hold the EML objects)
