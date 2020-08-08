@@ -11,7 +11,7 @@
     </allow>
   </access>
   <dataset>
-    <title>Nyack Floodplain RiverNet meteorlogical and soil data in Northwest Montana, USA, 2012-2020</title>
+    <title>Nyack Floodplain RiverNet meteorlogical and soil data in Northwest Montana, USA, 2012-2019</title>
     <creator>
       <individualName>
         <givenName>Phil</givenName>
@@ -47,7 +47,7 @@
       <electronicMailAddress>samuelbosio.2018@gmail.com</electronicMailAddress>
       <role>2020_updater</role>
     </associatedParty>
-    <pubDate>2020-07-31</pubDate>
+    <pubDate>2020-08-08</pubDate>
     <abstract>
       <para>Meterological and soil data from one location in the Nyack Floodplain of the Middle Fork of the Flathead River in Northwest Montana, USA. Data include air temperature, relative humidity, barometric pressure, precipitation, photosynthetically active radiation, wind speed and direction, soil temperature and volumetric water content. Measurements are made hourly for the period of 2012 to 2020.</para>
     </abstract>
@@ -86,7 +86,7 @@
             <calendarDate>2012-05-15</calendarDate>
           </beginDate>
           <endDate>
-            <calendarDate>2020-07-02</calendarDate>
+            <calendarDate>2019-06-25</calendarDate>
           </endDate>
         </rangeOfDates>
       </temporalCoverage>

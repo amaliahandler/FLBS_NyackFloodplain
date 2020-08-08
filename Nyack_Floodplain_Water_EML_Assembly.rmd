@@ -40,6 +40,8 @@ file.copy(from = './Data/Nyack_level_cleaned.csv',
           to   = './Nyack_Water_EML/data_objects')
 file.copy(from = './Data/Nyack_water_sensor_details.csv', 
           to   = './Nyack_Water_EML/data_objects')
+file.copy(from = './Data/Nyack_Data_2020/HA_Water_Data_Raw.csv', 
+          to   = './Nyack_Water_EML/data_objects')
 # Confirm that the files are present in the EML directory
 dir('./Nyack_Water_EML/data_objects')
 # Template table attributes for each table
@@ -49,7 +51,8 @@ template_table_attributes(
   data.table = c('Nyack_do_cleaned.csv', 
                  'Nyack_cond_cleaned.csv',
                  'Nyack_level_cleaned.csv',
-                 'Nyack_water_sensor_details.csv')
+                 'Nyack_water_sensor_details.csv',
+                 'HA_Water_Data_Raw.csv')
 )
 # Table attributes templates are now present
 dir('./Nyack_Water_EML/metadata_templates')
@@ -83,18 +86,18 @@ make_eml(
   data.path = './Nyack_Water_EML/data_objects',
   eml.path = './Nyack_Water_EML/eml',
   dataset.title = 'Nyack Floodplain RiverNet surface water and groundwater dissolved oxygen, conductivity, water level, and temperature Northwest Montana, USA, 2012-2019',
-  temporal.coverage = c('2011-12-14', '2019-06-25'),
+  temporal.coverage = c('2011-12-14', '2020-07-02'),
   geographic.description = 'Nyack, Montana, USA',
   geographic.coordinates = c('48.487', '-113.850','48.444', '-113.808'),
   maintenance.description = 'ongoing',
-  data.table = c('Nyack_do_cleaned.csv', 'Nyack_cond_cleaned.csv', 'Nyack_level_cleaned.csv', 'Nyack_water_sensor_details.csv'),
-  data.table.description = c('Dissolved oxygen data data', 'Conductivity data', 'Water level data', 'Sensor details'),
-  other.entity = c('HA_AllWater_Raw.csv', 'Nyack_Floodplain_Water_QAQC.Rmd', 'HA_Field_Log.xlsx'),
-  other.entity.description = c('Raw water data', 'Water data QAQC script', 'Sensor service field notes'),
+  data.table = c('Nyack_do_cleaned.csv', 'Nyack_cond_cleaned.csv', 'Nyack_level_cleaned.csv', 'Nyack_water_sensor_details.csv', 'HA_Water_Data_Raw.csv'),
+  data.table.description = c('Dissolved oxygen data data', 'Conductivity data', 'Water level data', 'Sensor details', 'Raw water data'),
+  other.entity = c('Nyack_Floodplain_Water_QAQC.Rmd', 'HA_Field_Log.xlsx'),
+  other.entity.description = c('Water data QAQC script', 'Sensor service field notes'),
   provenance = 'edi.416.2',
   user.id = 'amaliahandler',
   user.domain = 'EDI',
-  package.id = 'edi.524.2'
+  package.id = 'edi.524.3'
 )
 # View directory
 dir('./Nyack_Water_EML/eml')
