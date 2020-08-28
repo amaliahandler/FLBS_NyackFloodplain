@@ -1,7 +1,8 @@
-first	m	last	org	email		role	projectTitle	fundingAgency	fundingNumber
-Bob	O	Hall	FLBS	bob.hall@flbs.umt.edu		PI			
-Phil	L	Matson	FLBS	phil.matson@flbs.umt.edu		creator			
-Phil	L	Matson	FLBS	phil.matson@flbs.umt.edu		contact			
-Tom	S	Bansak	FLBS	tom.bansak@flbs.umt.edu		creator			
-Amalia	M	Handler		amalia.handler@gmail.com		creator			
-Amalia	M	Handler		amalia.handler@gmail.com		contact			
+givenName	middleInitial	surName	organizationName	electronicMailAddress	userId	role	projectTitle	fundingAgency	fundingNumber
+Bob	O	Hall	FLBS	bob.hall@flbs.umt.edu		PI				
+Phil	L	Matson	FLBS	phil.matson@flbs.umt.edu		creator				
+Phil	L	Matson	FLBS	phil.matson@flbs.umt.edu		contact				
+Tom	S	Bansak	FLBS	tom.bansak@flbs.umt.edu		creator				
+Amalia	M	Handler		amalia.handler@gmail.com		creator				
+Amalia	M	Handler		amalia.handler@gmail.com		contact				
+Samuel	F	Bosio		samuelbosio.2018@gmail.com		2020_updater				

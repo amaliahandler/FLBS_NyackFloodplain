@@ -1,7 +1,7 @@
 ---
 title: "Nyack_Floodplain_Met_EML_Assembly"
 author: "Amalia Handler"
-date: "8/23/2019"
+date: "8/08/2020"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -9,8 +9,12 @@ editor_options:
 This script uses the EML Assemblyline to create the metadata associated with the RiverNet meterological data.
 
 ```{r}
+# Load remotes package
+install.packages("remotes")
+library("remotes")
 # Install EML assemblyline from GitHub
-# remotes::install_github("EDIorg/EMLassemblyline")
+
+remotes::install_github("EDIorg/EMLassemblyline")
 
 # Load packages
 library(EMLassemblyline)

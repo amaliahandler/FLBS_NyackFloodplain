@@ -5,3 +5,4 @@ Phil	L	Matson	FLBS	phil.matson@flbs.umt.edu		contact
 Tom	S	Bansak	FLBS	tom.bansak@flbs.umt.edu		creator			
 Amalia	M	Handler		amalia.handler@gmail.com	amaliahandler	creator			
 Amalia	M	Handler		amalia.handler@gmail.com	amaliahandler	contact			
+Sam	F	Bosio		samuelbosio.2018@gmail.com	SamBosio	temporary contributor (2020)

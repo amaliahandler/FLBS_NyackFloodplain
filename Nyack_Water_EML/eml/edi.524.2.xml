@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.524.2" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.524.2" xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
   <access authSystem="https://pasta.edirepository.org/authentication" order="allowFirst" scope="document">
     <allow>
       <principal>uid=amaliahandler,o=EDI,dc=edirepository,dc=org</principal>
@@ -38,9 +38,18 @@
       </individualName>
       <electronicMailAddress>amalia.handler@gmail.com</electronicMailAddress>
     </creator>
-    <pubDate>2020-06-01</pubDate>
+    <associatedParty>
+      <individualName>
+        <givenName>Sam</givenName>
+        <givenName>F</givenName>
+        <surName>Bosio</surName>
+      </individualName>
+      <electronicMailAddress>samuelbosio.2018@gmail.com</electronicMailAddress>
+      <role>Temporary Contributor (2020)</role>
+    </associatedParty>
+    <pubDate>2020-07-30</pubDate>
     <abstract>
-      <para>Water dissolved oxygen, conductivity, temperature, and level from ten locations in the Nyack Floodplain of the Middle Fork of the Flathead River in Northwest Montana, USA. Measurements are made hourly for the period of 2012 to 2019. Six sensor are placed in groundwater wells and four are placed in surface water. Data have been cleaned to remove bad data and flag potentially anomalous observations.</para>
+      <para>Water dissolved oxygen, conductivity, temperature, and level from ten locations in the Nyack Floodplain of the Middle Fork of the Flathead River in Northwest Montana, USA. Measurements are made hourly for the period of 2012 to 2020. Six sensor are placed in groundwater wells and four are placed in surface water. Data up to June 26h, 2019 have been cleaned to remove bad data and flag potentially anomalous observations.</para>
     </abstract>
     <keywordSet>
       <keyword>Flathead Lake Biological Station</keyword>
@@ -55,7 +64,7 @@
       <keywordThesaurus>https://vocab.lternet.edu/vocab/vocab/index.php</keywordThesaurus>
     </keywordSet>
     <additionalInfo>
-      <para>Attached to this data package are the raw (no QAQC) data table, the R Markdown script used to QAQC the data, and the compiled sensor maintainence notes. </para>
+      <para>Attached to this data package are the raw (no QAQC) data table for data up to July 2nd 2020, the R Markdown script used to QAQC the data up to June 26th 2019, and the compiled sensor maintainence notes. </para>
     </additionalInfo>
     <intellectualRights>
       <para>This data package is released to the \"public domain\" under Creative Commons CC0 1.0 \"No Rights Reserved\" (see: https://creativecommons.org/publicdomain/zero/1.0/). It is considered professional etiquette to provide attribution of the original work if this data package is shared in whole or by individual components. A generic citation is provided for this data package on the website https://portal.edirepository.org (herein \"website\") in the summary metadata page. Communication (and collaboration) with the creators of this data package is recommended to prevent duplicate research or publication. This data package (and its components) is made available \"as is\" and with no warranty of accuracy or fitness for use. The creators of this data package and the website shall not be liable for any damages resulting from misinterpretation or misuse of the data package or its components. Periodic updates of this data package may be available from the website. Thank you.</para>
@@ -70,13 +79,76 @@
           <southBoundingCoordinate>48.444</southBoundingCoordinate>
         </boundingCoordinates>
       </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>HA10</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-113.8363909</westBoundingCoordinate>
+          <eastBoundingCoordinate>-113.8363909</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.47674594</northBoundingCoordinate>
+          <southBoundingCoordinate>48.47674594</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>HA07</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-113.8346167</westBoundingCoordinate>
+          <eastBoundingCoordinate>-113.8346167</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.46992439</northBoundingCoordinate>
+          <southBoundingCoordinate>48.46992439</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>HA12</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-113.8067139</westBoundingCoordinate>
+          <eastBoundingCoordinate>-113.8067139</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.45345903</northBoundingCoordinate>
+          <southBoundingCoordinate>48.45345903</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>HA15</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-113.8197193</westBoundingCoordinate>
+          <eastBoundingCoordinate>-113.8197193</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.46260653</northBoundingCoordinate>
+          <southBoundingCoordinate>48.46260653</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>HA02</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-113.8096606</westBoundingCoordinate>
+          <eastBoundingCoordinate>-113.8096606</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.4480334</northBoundingCoordinate>
+          <southBoundingCoordinate>48.4480334</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>HA08</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-113.8346167</westBoundingCoordinate>
+          <eastBoundingCoordinate>-113.8346167</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.46992439</northBoundingCoordinate>
+          <southBoundingCoordinate>48.46992439</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+      <geographicCoverage>
+        <geographicDescription>CASC</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-113.775906</westBoundingCoordinate>
+          <eastBoundingCoordinate>-113.775906</eastBoundingCoordinate>
+          <northBoundingCoordinate>48.425461</northBoundingCoordinate>
+          <southBoundingCoordinate>48.425461</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
       <temporalCoverage>
         <rangeOfDates>
           <beginDate>
             <calendarDate>2011-12-14</calendarDate>
           </beginDate>
           <endDate>
-            <calendarDate>2019-06-25</calendarDate>
+            <calendarDate>2020-07-02</calendarDate>
           </endDate>
         </rangeOfDates>
       </temporalCoverage>
@@ -104,8 +176,8 @@
     <methods>
       <methodStep>
         <description>
-          <para>The site is a 9 km2 montane floodplain on the gravel- and cobble-bedded Middle Fork of the Flathead River, located in northwest Montana, USA. Water dissolved oxygen, conductivity, temperature, and level from ten locations along the flooplain. Measurements are collected hourly for the period of 2011 to 2019. Six sensors are placed in groundwater wells and four are placed in surface water. All wells consist of a 7.64 cm diameter schedule 40 PVC. Groundwater wells have a maximum depth ranging from 8.5 to 13.5 m below ground. Surface water wells are are outfitted with a stilling well. Sensor arrays consist of an In Situ RDO to measure dissolved oxygen (DO) and temperature, a Campbell Scientific CS547 sensor outfitted with a A547 interface to measure conductivity and temperature, and a Campbell Scientific CS450-L pressure transducer to measure water level and temperature. Each sensor array is connected to a CR1000 logger and wiring panel for data logging. A solar panel recharges a 7 Ahr battery with a 12 V regulator. This data is periodically sent via radio telemetry to a central receiving location at a research cabin from which data backhaul to Flathead Lake Biological Station automatically twice daily via a landline telephone. Sensors are serviced monthly. The conducitivity and dissolved oxygen sensor surfaces are cleaned to remove any fouling. The water level sensor is cleaned on an as-needed basis. The dissolved oxygen sensor was calibrated monthly using a single point calibration (100% water saturated air) with barometric pressure from a meterological station on the floodplain. </para>
-          <para>The water level, conductivity, DO concentration, and temperature sensor associated with each sensor have been cleaned to remove known erroneous data based on field notes and flag potentially anomalous observations. Examples of known erroneous data include when all sensors are removed from the well for service or when solution is added to the well to remove ice in order to service sensors. These examples have independent verification from the sensor service log. In these cases, data values were replaced with a missing data value (-999). All other anomalous data was identified using the R package Anomalize (Version 0.1.1) using the seasonal decomposition of time series by loess (stl) method with frequency set to 24 hours and a trend of two weeks. The threshold for anomaly identification was tuned to each variable and sensor due to different variation structure. Anomalies identified through this process are noted in a flag column. Note that some of the groundwater wells do occasionally flood from surface water. Wells located at HA02, HA10, and HA15 are especially prone to this phenomena in the spring. The DO percent saturation has not been been cleaned for quality control. The DO percent saturation is calculated based on cleaned dissolved oxygen concentration and temperature data, as well as the non-QAQC barometric pressure data from the local meteorological station. When barometric pressure was missing from the meterological station, the instrument-calculated DO saturation was used. The raw data table contains the insturment-calculated DO saturation only.</para>
+          <para>The site is a 9 km2 montane floodplain on the gravel- and cobble-bedded Middle Fork of the Flathead River, located in northwest Montana, USA. Water dissolved oxygen, conductivity, temperature, and level from ten locations along the flooplain. Measurements are collected hourly for the period of 2011 to 2020. Six sensors are placed in groundwater wells and four are placed in surface water. All wells consist of a 7.64 cm diameter schedule 40 PVC. Groundwater wells have a maximum depth ranging from 8.5 to 13.5 m below ground. Surface water wells are are outfitted with a stilling well. Sensor arrays consist of an In Situ RDO to measure dissolved oxygen (DO) and temperature, a Campbell Scientific CS547 sensor outfitted with a A547 interface to measure conductivity and temperature, and a Campbell Scientific CS450-L pressure transducer to measure water level and temperature. Each sensor array is connected to a CR1000 logger and wiring panel for data logging. A solar panel recharges a 7 Ahr battery with a 12 V regulator. This data is periodically sent via radio telemetry to a central receiving location at a research cabin from which data backhaul to Flathead Lake Biological Station automatically twice daily via a landline telephone. Sensors are serviced monthly. The conducitivity and dissolved oxygen sensor surfaces are cleaned to remove any fouling. The water level sensor is cleaned on an as-needed basis. The dissolved oxygen sensor was calibrated monthly using a single point calibration (100% water saturated air) with barometric pressure from a meterological station on the floodplain. </para>
+          <para>The water level, conductivity, DO concentration, and temperature sensor associated with each sensor have been cleaned through data from June 26th, 2019 to remove known erroneous data based on field notes and flag potentially anomalous observations. Examples of known erroneous data include when all sensors are removed from the well for service or when solution is added to the well to remove ice in order to service sensors. These examples have independent verification from the sensor service log. In these cases, data values were replaced with a missing data value (-999). All other anomalous data was identified using the R package Anomalize (Version 0.1.1) using the seasonal decomposition of time series by loess (stl) method with frequency set to 24 hours and a trend of two weeks. The threshold for anomaly identification was tuned to each variable and sensor due to different variation structure. Anomalies identified through this process are noted in a flag column. Note that some of the groundwater wells do occasionally flood from surface water. Wells located at HA02, HA10, and HA15 are especially prone to this phenomenon in the spring. The DO percent saturation has not been been cleaned for quality control. The DO percent saturation is calculated based on cleaned dissolved oxygen concentration and temperature data, as well as the non-QAQC barometric pressure data from the local meteorological station. When barometric pressure was missing from the meterological station, the instrument-calculated DO saturation was used. The raw data table contains the insturment-calculated DO saturation only.</para>
           <para>Funding for the this monitoring program came in part from a NSF Field Stations and Marine Labs (FSML) program award: Enhanced Cooperative Research and Education at Flathead Lake Biological Station and Taylor Wilderness Research Station (DBI-0934420; 2009-2012).</para>
         </description>
       </methodStep>
@@ -995,21 +1067,251 @@
       </attributeList>
       <numberOfRecords>10</numberOfRecords>
     </dataTable>
-    <otherEntity>
-      <entityName>HA_AllWater_Raw.csv</entityName>
-      <entityDescription>Raw water data</entityDescription>
+    <dataTable>
+      <entityName>HA_Water_Data_Compiled.csv</entityName>
+      <entityDescription>All raw water data through 07-02-2020</entityDescription>
       <physical>
-        <objectName>HA_AllWater_Raw.csv</objectName>
-        <size unit="bytes">43922652</size>
-        <authentication method="MD5">0f898442e9e71ad6cab48c41895100ba</authentication>
+        <objectName>HA_Water_Data_Compiled.csv</objectName>
+        <size unit="bytes">36112709</size>
+        <authentication method="MD5">6d2bb1a4f62d58147128150882516029</authentication>
         <dataFormat>
-          <externallyDefinedFormat>
-            <formatName>unknown</formatName>
-          </externallyDefinedFormat>
+          <textFormat>
+            <numHeaderLines>1</numHeaderLines>
+            <recordDelimiter>\r\n</recordDelimiter>
+            <attributeOrientation>column</attributeOrientation>
+            <simpleDelimited>
+              <fieldDelimiter>,</fieldDelimiter>
+            </simpleDelimited>
+          </textFormat>
         </dataFormat>
       </physical>
-      <entityType>unknown</entityType>
-    </otherEntity>
+      <attributeList>
+        <attribute>
+          <attributeName>site</attributeName>
+          <attributeDefinition>Site within the floodplain for the well</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>Site within the floodplain for the well</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>sensor_number</attributeName>
+          <attributeDefinition>refers to the number of the specific sensor</attributeDefinition>
+          <storageType>string</storageType>
+          <measurementScale>
+            <nominal>
+              <nonNumericDomain>
+                <textDomain>
+                  <definition>refers to the number of the specific sensor</definition>
+                </textDomain>
+              </nonNumericDomain>
+            </nominal>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>datetime</attributeName>
+          <attributeDefinition>datetime of the observation</attributeDefinition>
+          <storageType>date</storageType>
+          <measurementScale>
+            <dateTime>
+              <formatString>YYYY-MM-DD hh:mm</formatString>
+              <dateTimeDomain/>
+            </dateTime>
+          </measurementScale>
+        </attribute>
+        <attribute>
+          <attributeName>do_conc</attributeName>
+          <attributeDefinition>Dissolved oxygen concentration</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>milligramsPerLiter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-0.149</minimum>
+                  <maximum exclusive="false">20.11</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>do_sat</attributeName>
+          <attributeDefinition>Dissolved oxygen percent saturation</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>percent</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.203</minimum>
+                  <maximum exclusive="false">1120</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>do_temp</attributeName>
+          <attributeDefinition>Water temperature as measured by the dissolved oxygen sensor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-3.024</minimum>
+                  <maximum exclusive="false">47.55</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>cond</attributeName>
+          <attributeDefinition>Water specific conductivity, temperature corrected</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>milliSiemens</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">0.005</minimum>
+                  <maximum exclusive="false">18.4</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>ct</attributeName>
+          <attributeDefinition>Water specific conductivity, NOT for temperature</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <customUnit>milliSiemens</customUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-1.392147</minimum>
+                  <maximum exclusive="false">11.01395</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>cond_temp</attributeName>
+          <attributeDefinition>Water temperature as measured by the conductivity sensor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-108.9</minimum>
+                  <maximum exclusive="false">50.43</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>level_m</attributeName>
+          <attributeDefinition>Water level relative to the ground surface elevation</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>meter</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-0.114</minimum>
+                  <maximum exclusive="false">5.165</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+        <attribute>
+          <attributeName>level_temp</attributeName>
+          <attributeDefinition>Water temperature as measured by the water level sensor</attributeDefinition>
+          <storageType>float</storageType>
+          <measurementScale>
+            <ratio>
+              <unit>
+                <standardUnit>celsius</standardUnit>
+              </unit>
+              <numericDomain>
+                <numberType>real</numberType>
+                <bounds>
+                  <minimum exclusive="false">-6.191</minimum>
+                  <maximum exclusive="false">38.64</maximum>
+                </bounds>
+              </numericDomain>
+            </ratio>
+          </measurementScale>
+          <missingValueCode>
+            <code>NA</code>
+            <codeExplanation>Sensor did not record data for this interval likely due to periodic inspection</codeExplanation>
+          </missingValueCode>
+        </attribute>
+      </attributeList>
+      <numberOfRecords>455550</numberOfRecords>
+    </dataTable>
     <otherEntity>
       <entityName>Nyack_Floodplain_Water_QAQC.Rmd</entityName>
       <entityDescription>Water data QAQC script</entityDescription>
@@ -1019,7 +1321,7 @@
         <authentication method="MD5">af053ddd00566d65ad4079b6e0d0cf03</authentication>
         <dataFormat>
           <externallyDefinedFormat>
-            <formatName>unknown</formatName>
+            <formatName>text/x-markdown</formatName>
           </externallyDefinedFormat>
         </dataFormat>
       </physical>
@@ -1034,7 +1336,7 @@
         <authentication method="MD5">581c53f7fe9112d83e5b8596ef28b0fb</authentication>
         <dataFormat>
           <externallyDefinedFormat>
-            <formatName>unknown</formatName>
+            <formatName>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</formatName>
           </externallyDefinedFormat>
         </dataFormat>
       </physical>
