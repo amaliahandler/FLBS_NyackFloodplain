@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.416.2" xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.416.2" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
   <access authSystem="https://pasta.edirepository.org/authentication" order="allowFirst" scope="document">
     <allow>
       <principal>uid=amaliahandler,o=EDI,dc=edirepository,dc=org</principal>
@@ -47,7 +47,7 @@
       <electronicMailAddress>samuelbosio.2018@gmail.com</electronicMailAddress>
       <role>2020_updater</role>
     </associatedParty>
-    <pubDate>2020-08-08</pubDate>
+    <pubDate>2020-09-11</pubDate>
     <abstract>
       <para>Meterological and soil data from one location in the Nyack Floodplain of the Middle Fork of the Flathead River in Northwest Montana, USA. Data include air temperature, relative humidity, barometric pressure, precipitation, photosynthetically active radiation, wind speed and direction, soil temperature and volumetric water content. Measurements are made hourly for the period of 2012 to 2020.</para>
     </abstract>
