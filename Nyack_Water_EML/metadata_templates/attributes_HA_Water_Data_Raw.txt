@@ -1,12 +1,12 @@
 attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
-site	Site within the floodplain for the well	character			NaN	Sensor did not record data likely due to maintence
-sensor_number	Refers to the specific sensor	character			NaN	Sensor did not record data likely due to maintence
-datetime	Datetime of the observation	Date		YYYY-MM-DD hh:mm	NaN	Sensor did not record data likely due to maintence
-do_conc	Dissolved oxygen concentration	numeric	milligramsPerLiter		NaN	Sensor did not record data likely due to maintence
-do_sat	Dissolved oxygen percent saturation	numeric	percent		NaN	Sensor did not record data likely due to maintence
-do_temp	Water temperature as measured by the dissolved oxygen sensor	numeric	celsius		NaN	Sensor did not record data likely due to maintence
-cond	"Water specific conductivity, temperature corrected"	numeric	milliSiemens		NaN	Sensor did not record data likely due to maintence
-ct	"Water specific conductivity, NOT for temperature"	numeric	milliSiemens		NaN	Sensor did not record data likely due to maintence
-cond_temp	Water temperature as measured by the conductivity sensor	numeric	celsius		NaN	Sensor did not record data likely due to maintence
-level_m	level relative to the ground surface elevation	numeric	meter		NaN	Sensor did not record data likely due to maintence
-level_temp	Water temperature as measured by the water level sensor	numeric	celsius		NaN	Sensor did not record data likely due to maintence
+site	Site within the floodplain for the well	character				
+sensor_number	Refers to the specific sensor	character				
+datetime	Datetime of the observation	Date		YYYY-MM-DD hh:mm:ss		
+do_conc	Dissolved oxygen concentration	numeric	milligramsPerLiter		NA	Sensor did not record data likely due to maintence
+do_sat	Dissolved oxygen percent saturation	numeric	percent		NA	Sensor did not record data likely due to maintence
+do_temp	Water temperature as measured by the dissolved oxygen sensor	numeric	celsius		NA	Sensor did not record data likely due to maintence
+cond	"Water specific conductivity, temperature corrected"	numeric	milliSiemens		NA	Sensor did not record data likely due to maintence
+ct	"Water specific conductivity, NOT for temperature"	numeric	milliSiemens		NA	Sensor did not record data likely due to maintence
+cond_temp	Water temperature as measured by the conductivity sensor	numeric	celsius		NA	Sensor did not record data likely due to maintence
+level_m	level relative to the ground surface elevation	numeric	meter		NA	Sensor did not record data likely due to maintence
+level_temp	Water temperature as measured by the water level sensor	numeric	celsius		NA	Sensor did not record data likely due to maintence

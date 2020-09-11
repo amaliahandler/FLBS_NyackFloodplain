@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.524.3" xsi:schemaLocation="https://eml.ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
+<eml:eml xmlns:eml="https://eml.ecoinformatics.org/eml-2.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stmml="http://www.xml-cml.org/schema/stmml-1.2" packageId="edi.524.3" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.2.0  https://nis.lternet.edu/schemas/EML/eml-2.2.0/xsd/eml.xsd" system="edi">
   <access authSystem="https://pasta.edirepository.org/authentication" order="allowFirst" scope="document">
     <allow>
       <principal>uid=amaliahandler,o=EDI,dc=edirepository,dc=org</principal>
+      <permission>all</permission>
+    </allow>
+    <allow>
+      <principal>uid=nyackedi2020,o=EDI,dc=edirepository,dc=org</principal>
       <permission>all</permission>
     </allow>
     <allow>
@@ -11,7 +15,7 @@
     </allow>
   </access>
   <dataset>
-    <title>Nyack Floodplain RiverNet surface water and groundwater dissolved oxygen, conductivity, water level, and temperature Northwest Montana, USA, 2012-2019</title>
+    <title>Nyack Floodplain RiverNet surface water and groundwater dissolved oxygen, conductivity, water level, and temperature Northwest Montana, USA, 2012-2020</title>
     <creator>
       <individualName>
         <givenName>Phil</givenName>
@@ -47,7 +51,7 @@
       <electronicMailAddress>samuelbosio.2018@gmail.com</electronicMailAddress>
       <role>Temporary Contributor (2020)</role>
     </associatedParty>
-    <pubDate>2020-08-08</pubDate>
+    <pubDate>2020-09-11</pubDate>
     <abstract>
       <para>Water dissolved oxygen, conductivity, temperature, and level from ten locations in the Nyack Floodplain of the Middle Fork of the Flathead River in Northwest Montana, USA. Measurements are made hourly for the period of 2012 to 2020. Six sensor are placed in groundwater wells and four are placed in surface water. Data up to June 26h, 2019 have been cleaned to remove bad data and flag potentially anomalous observations.</para>
     </abstract>
@@ -255,10 +259,10 @@
       <funding>No funding to report</funding>
     </project>
     <dataTable>
-      <entityName>Nyack_do_cleaned.csv</entityName>
-      <entityDescription>Dissolved oxygen data data</entityDescription>
+      <entityName>Nyack_do_2013-2019_cleaned.csv</entityName>
+      <entityDescription>Cleaned dissolved oxygen data data</entityDescription>
       <physical>
-        <objectName>Nyack_do_cleaned.csv</objectName>
+        <objectName>Nyack_do_2013-2019_cleaned.csv</objectName>
         <size unit="bytes">29438463</size>
         <authentication method="MD5">020dd44f8d47e860466cb68cf1d964c5</authentication>
         <dataFormat>
@@ -468,10 +472,10 @@
       <numberOfRecords>526734</numberOfRecords>
     </dataTable>
     <dataTable>
-      <entityName>Nyack_cond_cleaned.csv</entityName>
-      <entityDescription>Conductivity data</entityDescription>
+      <entityName>Nyack_cond_2013-2019_cleaned.csv</entityName>
+      <entityDescription>Cleaned conductivity data</entityDescription>
       <physical>
-        <objectName>Nyack_cond_cleaned.csv</objectName>
+        <objectName>Nyack_cond_2013-2019_cleaned.csv</objectName>
         <size unit="bytes">27665706</size>
         <authentication method="MD5">1397c12054043b42020a35f826100f0c</authentication>
         <dataFormat>
@@ -648,10 +652,10 @@
       <numberOfRecords>526734</numberOfRecords>
     </dataTable>
     <dataTable>
-      <entityName>Nyack_level_cleaned.csv</entityName>
-      <entityDescription>Water level data</entityDescription>
+      <entityName>Nyack_level_2013-2019_cleaned.csv</entityName>
+      <entityDescription>Cleaned water level data</entityDescription>
       <physical>
-        <objectName>Nyack_level_cleaned.csv</objectName>
+        <objectName>Nyack_level_2013-2019_cleaned.csv</objectName>
         <size unit="bytes">22468648</size>
         <authentication method="MD5">26161512d0ef9270decee57d0ba29ac7</authentication>
         <dataFormat>
@@ -1099,10 +1103,6 @@
               </nonNumericDomain>
             </nominal>
           </measurementScale>
-          <missingValueCode>
-            <code>NaN</code>
-            <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
-          </missingValueCode>
         </attribute>
         <attribute>
           <attributeName>sensor_number</attributeName>
@@ -1117,10 +1117,6 @@
               </nonNumericDomain>
             </nominal>
           </measurementScale>
-          <missingValueCode>
-            <code>NaN</code>
-            <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
-          </missingValueCode>
         </attribute>
         <attribute>
           <attributeName>datetime</attributeName>
@@ -1128,14 +1124,10 @@
           <storageType>date</storageType>
           <measurementScale>
             <dateTime>
-              <formatString>YYYY-MM-DD hh:mm</formatString>
+              <formatString>YYYY-MM-DD hh:mm:ss</formatString>
               <dateTimeDomain/>
             </dateTime>
           </measurementScale>
-          <missingValueCode>
-            <code>NaN</code>
-            <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
-          </missingValueCode>
         </attribute>
         <attribute>
           <attributeName>do_conc</attributeName>
@@ -1156,7 +1148,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1179,7 +1171,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1202,7 +1194,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1225,7 +1217,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1248,7 +1240,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1271,7 +1263,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1294,7 +1286,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1317,7 +1309,7 @@
             </ratio>
           </measurementScale>
           <missingValueCode>
-            <code>NaN</code>
+            <code>NA</code>
             <codeExplanation>Sensor did not record data likely due to maintence</codeExplanation>
           </missingValueCode>
         </attribute>
@@ -1333,7 +1325,7 @@
         <authentication method="MD5">af053ddd00566d65ad4079b6e0d0cf03</authentication>
         <dataFormat>
           <externallyDefinedFormat>
-            <formatName>text/x-markdown</formatName>
+            <formatName>unknown</formatName>
           </externallyDefinedFormat>
         </dataFormat>
       </physical>
@@ -1348,7 +1340,7 @@
         <authentication method="MD5">581c53f7fe9112d83e5b8596ef28b0fb</authentication>
         <dataFormat>
           <externallyDefinedFormat>
-            <formatName>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</formatName>
+            <formatName>unknown</formatName>
           </externallyDefinedFormat>
         </dataFormat>
       </physical>
