@@ -15,10 +15,10 @@ Load data from FLBS internal database. It extends from 2013-04-01 to 2019-06-25 
 
 ```{r include = FALSE}
 # List the files in the directory from Phil
-ha_files_toread <- list.files(path = "/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020", pattern = ".dat")
+ha_files_toread <- list.files(path = "./Data/Nyack_Data_2020", pattern = ".dat")
 
 # Read in the files
-toread <- paste("/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/", ha_files_toread, sep = '')
+toread <- paste("./Data/Nyack_Data_2020/", ha_files_toread, sep = '')
 
 ha_files <- list()
 ha_files <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4) 
@@ -26,7 +26,7 @@ ha_files <- lapply(toread, read.delim, header = FALSE, sep = ',', skip = 4)
 # Get the column names
 var_names <- list()
 for(i in 1:length(ha_files)){
-  var_names[[i]] <- colnames(read.delim(paste("/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/", ha_files_toread[i], sep = ''), sep = ",", skip = 1, header = TRUE))
+  var_names[[i]] <- colnames(read.delim(paste("./Data/Nyack_Data_2020/", ha_files_toread[i], sep = ''), sep = ",", skip = 1, header = TRUE))
 }
 
 # Apply the column names to the list of dfs
@@ -91,8 +91,8 @@ ha_files$HA07_met$site <- "ha07"
 ha_files$HA07_met      <- ha_files$HA07_met[, c(21,1,3:20)]
 
 # Save the meterological data file
-saveRDS(ha_files$HA07_met, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/Nyack_Met_Data.rds')
-write.csv(ha_files$HA07_met, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/Nyack_Met_Data.csv', row.names = FALSE)
+saveRDS(ha_files$HA07_met, './Data/Nyack_Data_2020/Nyack_Met_Data.rds')
+write.csv(ha_files$HA07_met, './Data/Nyack_Data_2020/Nyack_Met_Data.csv', row.names = FALSE)
 
 ```
 
@@ -160,8 +160,8 @@ ha_water <- ha_all[, c(11,12,1,3:10)]
 ha_water <- ha_water[!duplicated(ha_water),]
 
 # Save the new master file
-saveRDS(ha_water, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/HA_Water_Data_Compiled.rds')
-write.csv(ha_water, '/Users/Sam Bosio/Documents/FLBS_NyackFloodplain/Data/Nyack_Data_2020/HA_Water_Data_Compiled.csv', row.names = FALSE, quote = FALSE)
+saveRDS(ha_water, './Data/Nyack_Data_2020/HA_Water_Data_Compiled.rds')
+write.csv(ha_water, './Data/Nyack_Data_2020/HA_Water_Data_Compiled.csv', row.names = FALSE, quote = FALSE)
 
 ```
 
