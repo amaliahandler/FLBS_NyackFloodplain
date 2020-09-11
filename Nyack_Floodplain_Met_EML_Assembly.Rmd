@@ -85,16 +85,16 @@ make_eml(
   path = './Nyack_Met_EML/metadata_templates',
   data.path = './Nyack_Met_EML/data_objects',
   eml.path = './Nyack_Met_EML/eml',
-  dataset.title = 'Nyack Floodplain RiverNet meteorlogical and soil data in Northwest Montana, USA, 2012-2019',
-  temporal.coverage = c('2012-05-15', '2019-06-25'),
+  dataset.title = 'Nyack Floodplain RiverNet meteorlogical and soil data in Northwest Montana, USA, 2012-2020',
+  temporal.coverage = c('2012-05-15', '2020-07-02'),
   geographic.description = 'Nyack, Montana, USA',
   geographic.coordinates = c('48.4699178', '-113.8346032','48.4699178', '-113.8346032'),
   maintenance.description = 'ongoing',
   data.table = c('Nyack_met_data.csv'),
   data.table.description = c('Meteorlogical data'),
-  user.id = 'amaliahandler',
-  user.domain = 'EDI',
-  package.id = 'edi.416.2'
+  user.id = c('amaliahandler', 'nyackedi2020'),
+  user.domain = c('EDI','EDI'),
+  package.id = 'edi.416.3'
 )
 
 # View directory
