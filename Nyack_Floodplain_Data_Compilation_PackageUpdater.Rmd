@@ -9,9 +9,13 @@ editor_options:
   chunk_output_type: console
 ---
 
-Code to compile all River Net Nyack Floodplain meterological and hydrologic data. Code was written by Amalia Handler, Environmental Data Initiative Summer Data Science Fellow, during summer 2019. Please contact her with any questions: amalia.handler@gmail.com
+This code has been modified from the following script:
 
-Load data from FLBS internal database. It extends from 2013-04-01 to 2019-06-25. 
+Nyack_Floodplain_Data_Compilation.Rmd
+
+which was originally developed to compile Nyack RiverNet data from the start of the RiverNet monitoring project to 2019-06-25.
+
+The code below has been modified in order to append newer data to the original RiverNet data so that data package updates can occur.
 
 ```{r include = FALSE}
 # List the files in the directory from Phil
